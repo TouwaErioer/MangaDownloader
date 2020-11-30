@@ -3,26 +3,36 @@
 # @Time    : 2020/11/29 16:44
 # @Author  : DHY
 # @File    : utils.py
-
-
-import requests
+import socket
+import socks
+import aiohttp
+import asyncio
 import os
-from concurrent.futures import (ALL_COMPLETED, ThreadPoolExecutor, wait)
-
-img_headers = {
-    'Referer': 'https://www.manhuadb.com/manhua/1466',
-    'Upgrade-Insecure-Requests': '1',
-    'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) '
-                  'Chrome/66.0.3359.139 Safari/537.36',
-    'Host': 'i1.manhuadb.com',
-}
+import requests
+from tqdm import tqdm
 
 
-def work(task: dict):
+def get_html(url, headers):
     try:
-        data = requests.get(task['url'], headers=img_headers)
-        with open(task['path'], 'wb') as f:
-            f.write(data.content)
+        # socks.set_default_proxy(socks.SOCKS5, "localhost", 1090)
+        # socket.socket = socks.socksocket
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        response.encoding = 'utf-8'
+        return response
+    except Exception as e:
+        print(e)
+
+
+# 异步下载图片
+async def work(task: dict):
+    try:
+        headers = task['headers']
+        async with aiohttp.ClientSession() as session:
+            response = await session.get(task['url'], headers=headers)
+            content = await response.read()
+            with open(task['path'], 'wb') as f:
+                f.write(content)
     except Exception as e:
         print(e)
 
@@ -36,10 +46,11 @@ def image_download(task: dict):
     episode = task['episode']
     jpg_url_list = task['jpg_url_list']
     pages = task['pages']
+    headers = task['headers']
 
-    # 创建线程池
-    executor = ThreadPoolExecutor(max_workers=30)
+    loop = asyncio.get_event_loop()
     all_task = []
+
     for jpg_url in jpg_url_list:
         if not os.path.exists(title + '/' + episode):
             # 递归创建文件夹
@@ -47,9 +58,16 @@ def image_download(task: dict):
         path = '%s/%s/%s' % (title, episode, str(jpg_url['page']) + '.jpg')
 
         if not os.path.exists(path):
-            all_task.append(executor.submit(work, {'url': jpg_url['url'], 'path': path}))
-        else:
-            print('文件已存在')
+            all_task.append(asyncio.ensure_future(
+                work({'url': jpg_url['url'], 'path': path, 'headers': headers})))
+        # else:
+        #     print('文件已存在')
+    if len(all_task) > 0:
 
-    wait(all_task, return_when=ALL_COMPLETED)
-    print('%s-下载完成，共%d话，已下载%d话' % (episode, pages, len(jpg_url_list)))
+        with tqdm(total=len(all_task), desc='%s' % episode) as bar:
+            for t in all_task:
+                t.add_done_callback(lambda _: bar.update(1))
+
+            loop.run_until_complete(asyncio.wait(all_task))
+
+    # print('%s-下载完成，共%d话，已下载%d话' % (episode, pages, len(jpg_url_list)))

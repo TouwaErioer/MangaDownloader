@@ -6,10 +6,11 @@
 import re
 import requests
 from bs4 import BeautifulSoup
-import socket
-import socks
-from utils import image_download
-from concurrent.futures import (ALL_COMPLETED, ThreadPoolExecutor, wait)
+import base64
+import json
+
+from utils import image_download, get_html
+# from concurrent.futures import (ALL_COMPLETED, ThreadPoolExecutor, wait)
 
 headers = {
     'Referer': 'www.manhuadb.com',
@@ -19,16 +20,15 @@ headers = {
     'Host': 'www.manhuadb.com',
 }
 
+image_headers = {
+    'Referer': 'www.manhuadb.com',
+    'Upgrade-Insecure-Requests': '1',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) '
+                  'Chrome/66.0.3359.139 Safari/537.36',
+    'Host': 'i1.manhuadb.com',
+}
 
-def get_html(url):
-    try:
-        response = requests.request('get', url, headers=headers)
-        response.raise_for_status()
-        response.encoding = 'utf-8'
-        return response
-    except Exception as e:
-        print(e)
-        return None
+failure_task_list = []
 
 
 def get_image_url(page: str, index: int, url: str) -> str:
@@ -39,17 +39,14 @@ def get_image_url(page: str, index: int, url: str) -> str:
     if len(content) > 0:
         return content[0].get('src')
     else:
-        print('第%d话-%dp-解析失败 %s' % (index, int(url.split('/')[-1].split('_')[-1].split('.')[0].replace('p', '')), url))
+        failure_task_list.append({'index': index, 'url': url})
         return None
 
 
 def main():
     url = input('请输入你要批量下载漫画的网址：')[:-1] or 'https://www.manhuadb.com/manhua/1488'
 
-    socks.set_default_proxy(socks.SOCKS5, "localhost", 1090)
-    socket.socket = socks.socksocket
-
-    html = get_html(url)
+    html = get_html(url, headers)
     page = html.content
     soup = BeautifulSoup(page, 'lxml')
     title = soup.select('.comic-title')[0].get_text()
@@ -72,45 +69,58 @@ def main():
     else:
         value = 0
 
+    # 输入分支检查
+    if value > len(list(tab.keys())) or value < 0:
+        raise IndexError('超出分支范围')
+
     # 全部的话数
     url_list = []
-    page_links = soup.select('.fixed-a-es')
-
-    for links in page_links:
-        url = links.get('href')
+    sort_div = soup.select('.sort_div')
+    for div in sort_div:
+        url = div.select('a')[0].get('href')
         if url.find(tab.get(list(tab.keys())[value])) != -1:
             url_list.append(url)
 
+    index = int(input('请输入截止范围（共%d话，默认下载全部）：' % len(url_list)) or len(url_list))
+
+    # 输入章节检查
+    if index > len(url_list) or index < 0:
+        raise IndexError('超出章节范围')
+
     # 每话
-    for index, link in enumerate(url_list[:3], 1):
+    for index, link in enumerate(url_list[:index], 1):
+
         url = 'http://www.manhuadb.com' + link
-        html = get_html(url)
+        html = get_html(url, headers)
         html = html.text
+
+        result = json.loads(str(base64.b64decode(re.findall("img_data = '(.*?)'", html)[0]).decode('utf-8')))
+        jpg_url = re.findall(r'<img class="img-fluid show-pic" src="(.*?)" />', html)[0]
+        suffix = jpg_url.split('/')[-1]
+        prefix = jpg_url.replace(suffix, '')
         episode = re.findall('<h2 class="h4 text-center">(.*?)</h2>', html)[0]
         pages = int(re.findall(r'共 (\d*) 页', html)[0])
-
         task = {
             'title': title,
             'episode': episode,
             'jpg_url_list': [],
-            'pages': pages
+            'pages': pages,
+            'headers': image_headers
         }
 
-        # 第一话 解析图片地址
-        jpg_url = re.findall(r'<img class="img-fluid show-pic" src="(.*?)" />', get_html(url).text)[0]
-        task['jpg_url_list'].append({'url': jpg_url, 'page': 1})
+        for res in result:
+            task['jpg_url_list'].append({'url': prefix + res['img'], 'page': res['p']})
 
-        # 其余话 解析图片地址 线程池
-        executor = ThreadPoolExecutor(max_workers=20)
-        all_task = [executor.submit(get_image_url, page, index, url) for page in range(2, pages + 1)]
-        wait(all_task, return_when=ALL_COMPLETED)
-
-        for executor in all_task:
-            url = executor.result()
-            if url is not None:
-                task['jpg_url_list'].append({'url': url, 'page': url.split('/')[6].split('_')[0]})
+        # 设置Host
+        if len(task['jpg_url_list']) != 0:
+            task['headers']['Host'] = task['jpg_url_list'][0]['url'].split('/')[2]
 
         image_download(task)
+
+    for failure_task in failure_task_list:
+        url = failure_task['url']
+        p = int(url.split('/')[-1].split('_')[-1].split('.')[0].replace('p', ''))
+        print('第%d话-%dp-解析失败 %s' % (failure_task['index'], p, url))
 
 
 if __name__ == '__main__':
