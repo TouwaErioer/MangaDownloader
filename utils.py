@@ -3,19 +3,17 @@
 # @Time    : 2020/11/29 16:44
 # @Author  : DHY
 # @File    : utils.py
-import socket
-import socks
 import aiohttp
 import asyncio
 import os
 import requests
 from tqdm import tqdm
+from Crypto.Cipher import AES
+import base64
 
 
 def get_html(url, headers):
     try:
-        # socks.set_default_proxy(socks.SOCKS5, "localhost", 1090)
-        # socket.socket = socks.socksocket
         response = requests.get(url, headers=headers)
         response.raise_for_status()
         response.encoding = 'utf-8'
@@ -34,7 +32,7 @@ async def work(task: dict):
             with open(task['path'], 'wb') as f:
                 f.write(content)
     except Exception as e:
-        print(e)
+        print('错误', e)
 
 
 def image_download(task: dict):
@@ -70,4 +68,9 @@ def image_download(task: dict):
 
             loop.run_until_complete(asyncio.wait(all_task))
 
-    # print('%s-下载完成，共%d话，已下载%d话' % (episode, pages, len(jpg_url_list)))
+
+def aes_decrypt(key, iv, content):
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    content = base64.b64decode(content)
+    text = cipher.decrypt(content).decode('utf-8')
+    return text.strip()
