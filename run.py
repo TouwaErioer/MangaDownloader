@@ -6,6 +6,7 @@
 import manhuadb
 import manhuadui
 from prettytable import PrettyTable
+import common
 
 if __name__ == '__main__':
     keywords = input('请输入关键词：') or '辉夜'
@@ -37,8 +38,18 @@ if __name__ == '__main__':
     table.align['manhuadb'] = 'l'
     table.align['manhuadui'] = 'l'
     print(table)
-    placeholder = '请输入序号，默认1：'
-    value = int(input(placeholder) or 1) - 1
+
+    placeholder = '共找到%d个结果，请输入序号，默认1：' % len(result)
+    while True:
+        try:
+            value = int(input(placeholder) or 1) - 1
+            if value < 0 or value > len(result):
+                raise IndexError
+            break
+        except ValueError:
+            print('\033[0;31;40m输入不为数字，请重新输入\033[0m')
+        except IndexError:
+            print('\033[0;31;40m输入超出范围，请重新输入\033[0m')
     url = result[value]['url']
 
     if url.find('manhuadb') != -1:

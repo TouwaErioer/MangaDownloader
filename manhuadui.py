@@ -53,7 +53,10 @@ def get_jpg_list(code):
     page_list = aes_decrypt(b'KA58ZAQ321oobbG8', b'A1B2C3DEF1G321o8', code)[1:-1].split(',')
     jpg_list = []
     for index, p in enumerate(page_list, 1):
-        jpg_list.append({'url': p.replace('\\', '').replace('"', ''), 'page': index})
+        if p.find(']') != -1:
+            jpg_list.append({'url': p.replace('\\', '').replace('"', '').split(']')[0], 'page': index})
+        else:
+            jpg_list.append({'url': p.replace('\\', '').replace('"', ''), 'page': index})
     return jpg_list
 
 

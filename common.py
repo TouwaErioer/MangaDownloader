@@ -6,11 +6,11 @@
 
 
 def enter_range(pages: list):
-    print('格式：【x:y，从x开始y结束；y，从1开始y结束】')
+    # print('格式：【x:y，从x开始y结束；y，从1开始y结束】')
     while True:
         start = 0
         try:
-            end = input('请输入范围（共%d话，默认下载全部）：' % len(pages)) or len(pages)
+            end = input('共找到%d话，请输入下载范围，默认下载全部：' % len(pages)) or len(pages)
             if str(end).find(':') != -1:
                 input_arr = end.split(':')
                 start = int(input_arr[0])
@@ -23,11 +23,11 @@ def enter_range(pages: list):
                     raise IndexError
             return start, end
         except TypeError:
-            print('输入不是数字，重新输入')
+            print('\033[0;31;40m输入不是数字，重新输入\033[0m')
         except ValueError:
-            print('输入不是数字，重新输入')
+            print('\033[0;31;40m输入不是数字，重新输入\033[0m')
         except IndexError:
-            print('超出章节范围')
+            print('\033[0;31;40m超出章节范围\033[0m')
 
 
 def enter_branch(tab: dict):
@@ -48,9 +48,10 @@ def enter_branch(tab: dict):
                 raise IndexError
             return value
         except ValueError:
-            print('输入不为数字')
+
+            print('\033[0;31;40m输入不为数字\033[0m')
         except IndexError:
-            print('超出分支范围')
+            print('\033[0;31;40m超出分支范围\033[0m')
 
 
 if __name__ == '__main__':
