@@ -107,6 +107,10 @@ def run(url):
     executor = ThreadPoolExecutor(max_workers=20)
     all_task = [executor.submit(works, host + link, title) for link in episodes[enter[0]:enter[1]]]
     wait(all_task, return_when=ALL_COMPLETED)
-
+    failure_list = []
     for work in all_task:
-        image_download(work.result())
+        result = image_download(work.result())
+        if len(result) != 0:
+            failure_list.extend(result)
+
+    return failure_list

@@ -29,7 +29,7 @@ def get_html(url, headers):
 
 
 # 异步下载图片
-@retry(stop_max_attempt_number=5, wait_fixed=2000)  # 报错重试5次，每隔2秒
+@retry(stop_max_attempt_number=5, wait_fixed=5000)  # 报错重试5次，每隔2秒
 async def work(task: dict):
     try:
         headers = task['headers']
@@ -40,7 +40,7 @@ async def work(task: dict):
             with open(task['path'], 'wb') as f:
                 f.write(content)
     except Exception:
-        pass
+        return task
 
 
 def image_download(task: dict):
@@ -70,6 +70,9 @@ def image_download(task: dict):
             for t in all_task:
                 t.add_done_callback(lambda _: bar.update(1))
             loop.run_until_complete(asyncio.wait(all_task))
+    failure_list = [task.result() for task in all_task if task.result() is not None]
+
+    return failure_list
 
 
 def aes_decrypt(key, iv, content):
