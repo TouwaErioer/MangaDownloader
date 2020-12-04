@@ -37,7 +37,9 @@ def search(keywords: str):
     result_list = []
     for result in results:
         item = result.select('a')[0]
-        result_list.append({'title': item.get('title'), 'url': 'http://manhuadb.com' + item.get('href')})
+        author = result.select('.comic-author a')[0].get('title')
+        result_list.append(
+            {'title': item.get('title'), 'url': 'http://manhuadb.com' + item.get('href'), 'author': author})
     return result_list
 
 
@@ -70,7 +72,7 @@ def works(url, title):
     episode = re.findall('<h2 class="h4 text-center">(.*?)</h2>', html)[0]
     pages = int(re.findall(r'共 (\d*) 页', html)[0])
     task = {
-        'title': title,
+        'title': '[漫画DB]' + title,
         'episode': episode,
         'jpg_url_list': [],
         'pages': pages,
@@ -111,6 +113,5 @@ def run(url):
     for work in all_task:
         result = image_download(work.result())
         if len(result) != 0:
-            failure_list.extend(result)
-
+            failure_list.append(result)
     return failure_list

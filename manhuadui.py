@@ -13,7 +13,6 @@ headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) '
                   'Chrome/66.0.3359.139 Safari/537.36',
 }
-
 host = 'https://www.manhuadai.com/'
 
 
@@ -21,21 +20,27 @@ host = 'https://www.manhuadai.com/'
 def search(keywords: str):
     search_response = get_html('https://www.manhuadai.com/search/?keywords=' + keywords, headers=headers)
     search_soup = BeautifulSoup(search_response.content, 'lxml')
-    results = search_soup.select('.image-link')
+    results = search_soup.select('.list-comic')
     result_list = []
     for result in results:
-        result_list.append({'title': result.get('title'), 'url': result.get('href')})
+        author = result.select('.auth')[0].get_text()
+        a = result.select('a')[1]
+        result_list.append(
+            {'title': a.get('title'), 'url': a.get('href'), 'author': author})
     return result_list
 
 
 # 获取分支
 def get_branch(soup):
     tabs = soup.select('.zj_list .c_3')
-    data_keys = soup.select('.zj_list_head_px')
-    branch = {}
-    for index, item in enumerate(tabs):
-        branch[item.get_text()] = data_keys[index].get('data-key')
-    return branch
+    if len(tabs) != 0:
+        data_keys = soup.select('.zj_list_head_px')
+        branch = {}
+        for index, item in enumerate(tabs):
+            branch[item.get_text()] = data_keys[index].get('data-key')
+        return branch
+    else:
+        return None
 
 
 # 获取全部话
@@ -49,14 +54,25 @@ def get_episodes(soup, branch, value):
 
 
 # 获取图片链接列表
-def get_jpg_list(code):
+def get_jpg_list(code, chapter_path):
     page_list = aes_decrypt(b'KA58ZAQ321oobbG8', b'A1B2C3DEF1G321o8', code)[1:-1].split(',')
     jpg_list = []
     for index, p in enumerate(page_list, 1):
-        if p.find(']') != -1:
-            jpg_list.append({'url': p.replace('\\', '').replace('"', '').split(']')[0], 'page': index})
+        if p.find('ManHuaKu') != -1:
+            if p.find(']') != -1:
+                jpg_list.append({'url': p.replace('\\', '').replace('"', '').split(']')[0], 'page': index})
+            else:
+                jpg_list.append({'url': p.replace('\\', '').replace('"', ''), 'page': index})
         else:
-            jpg_list.append({'url': p.replace('\\', '').replace('"', ''), 'page': index})
+            if p.find(']') != -1:
+                jpg_list.append(
+                    {'url': 'https://manga.mipcdn.com/i/s/img01.eshanyao.com/' + chapter_path +
+                            p.replace('"', '').split(']')[0],
+                     'page': index})
+            else:
+                jpg_list.append(
+                    {'url': 'https://manga.mipcdn.com/i/s/img01.eshanyao.com/' + chapter_path + p.replace('"', ''),
+                     'page': index})
     return jpg_list
 
 
@@ -65,8 +81,10 @@ def works(url, title):
     soup = BeautifulSoup(response.content, 'lxml')
     episode = soup.select('.head_title h2')[0].get_text()
     code = re.findall("var chapterImages =\\s*\"(.*?)\"", response.text)[0]
-    jpg_list = get_jpg_list(code)
-    task = {'title': title, 'episode': episode, 'jpg_url_list': jpg_list, 'pages': len(jpg_list), 'headers': headers}
+    chapter_path = re.findall("var chapterPath = \"(.*?)\"", response.text)[0]
+    jpg_list = get_jpg_list(code, chapter_path)
+    task = {'title': '[漫画堆]' + title, 'episode': episode, 'jpg_url_list': jpg_list, 'pages': len(jpg_list),
+            'headers': headers}
     return task
 
 
@@ -77,6 +95,8 @@ def run(url):
 
     # 分支
     branch = get_branch(soup)
+    if branch is None:
+        raise Exception('已下架')
 
     # 选择分支
     value = enter_branch(branch)
@@ -96,6 +116,10 @@ def run(url):
     for work in all_task:
         result = image_download(work.result())
         if len(result) != 0:
-            failure_list.extend(result)
+            failure_list.append(result)
 
     return failure_list
+
+
+if __name__ == '__main__':
+    print(search('辉夜'))

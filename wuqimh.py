@@ -22,8 +22,16 @@ def search(keywords, isRecursion=False):
     html = get_html('http://www.wuqimh.com/search/q_' + keywords, headers)
     soup = BeautifulSoup(html.content, 'lxml')
     page_count = len(soup.select('.pager-cont a'))
-    books = soup.select('.book-cover .bcover')
-    result = [{'title': book.get('title'), 'url': 'http://www.wuqimh.com' + book.get('href')} for book in books]
+    books = soup.select('.book-detail')
+    result = []
+    for book in books:
+        a = book.select('dt a')[0]
+        author = book.select('.tags')[2].select('a')[0].get_text()
+        result.append({
+            'title': a.get('title'),
+            'url': 'http://www.wuqimh.com' + a.get('href'),
+            'author': author
+        })
     # 页数大于1，线程池获取第二页以后的数据
     if page_count > 1 and isRecursion is not True:
         executor = ThreadPoolExecutor(max_workers=5)
@@ -59,7 +67,7 @@ def works(link, title):
     episode = re.findall('<h2>(.*?)</h2>', html.text)[0]
     headers['Referer'] = 'http://www.wuqimh.com/'
     headers.pop('Host')
-    task = {'title': title,
+    task = {'title': '[57漫画]' + title,
             'episode': episode,
             'jpg_url_list': [{'url': 'http://images.720rs.com' + jpg, 'page': index} for index, jpg in
                              enumerate(jpg_list, 1)],
@@ -92,11 +100,10 @@ def run(url):
     for work in all_task:
         result = image_download(work.result())
         if len(result) != 0:
-            failure_list.extend(result)
+            failure_list.append(result)
 
     return failure_list
 
 
 if __name__ == '__main__':
-    for res in search('辉夜'):
-        print(res)
+    print(search('辉夜'))

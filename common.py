@@ -5,12 +5,18 @@
 # @File    : common.py
 
 
+yellow_text = '\33[1;33m%s\033[0m'
+blue_text = '\33[1;34m%s\033[0m'
+green_text = '\33[1;32m%s\033[0m'
+pink_text = '\33[1;35m%s\033[0m'
+
+
 def enter_range(pages: list):
     # print('格式：【x:y，从x开始y结束；y，从1开始y结束】')
     while True:
         start = 0
         try:
-            end = input('共找到%d话，请输入下载范围，默认下载全部：' % len(pages)) or len(pages)
+            end = input('请输入下载范围（%d话）> ' % len(pages)) or len(pages)
             if str(end).find(':') != -1:
                 input_arr = end.split(':')
                 start = int(input_arr[0])
@@ -38,7 +44,7 @@ def enter_branch(tab: dict):
                 placeholder = '查询到多个分支\n'
                 for index, value in enumerate(list(tab.keys()), 1):
                     placeholder += str(index) + '、' + value + '\n'
-                placeholder += '请输入序号，默认1：'
+                placeholder += '请输入序号> '
                 value = int(input(placeholder) or 1) - 1
             else:
                 value = 0

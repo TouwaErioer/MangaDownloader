@@ -29,21 +29,22 @@ def get_html(url, headers):
 
 
 # 异步下载图片
-@retry(stop_max_attempt_number=5, wait_fixed=5000)  # 报错重试5次，每隔2秒
-async def work(task: dict):
+@retry(stop_max_attempt_number=5, wait_fixed=2000)  # 报错重试5次，每隔2秒
+async def work(task: dict, semaphore):
     try:
-        headers = task['headers']
-        headers['User-Agent'] = UserAgent().random
-        async with aiohttp.ClientSession() as session:
-            response = await session.get(task['url'], headers=headers, timeout=10)
-            content = await response.read()
-            with open(task['path'], 'wb') as f:
-                f.write(content)
+        async with semaphore:
+            headers = task['headers']
+            headers['User-Agent'] = UserAgent().random
+            async with aiohttp.ClientSession() as session:
+                response = await session.get(task['url'], headers=headers, timeout=10)
+                content = await response.read()
+                with open(task['path'], 'wb') as f:
+                    f.write(content)
     except Exception:
         return task
 
 
-def image_download(task: dict):
+def image_download(task: dict, semaphore=500):
     # 参数检查
     if 'title' in task is False and 'episode' in task is False and 'jpg_url_list' in task is False and 'pages' in task:
         assert ValueError
@@ -57,6 +58,7 @@ def image_download(task: dict):
     loop = asyncio.get_event_loop()
     all_task = []
 
+    semaphore = asyncio.Semaphore(semaphore)
     for jpg_url in jpg_url_list:
         if not os.path.exists(title + '/' + episode):
             # 递归创建文件夹
@@ -64,7 +66,8 @@ def image_download(task: dict):
         path = '%s/%s/%s' % (title, episode, str(jpg_url['page']) + '.jpg')
 
         if not os.path.exists(path):
-            all_task.append(asyncio.ensure_future(work({'url': jpg_url['url'], 'path': path, 'headers': headers})))
+            all_task.append(
+                asyncio.ensure_future(work({'url': jpg_url['url'], 'path': path, 'headers': headers}, semaphore)))
     if len(all_task) > 0:
         with tqdm(total=len(all_task), desc='%s' % episode) as bar:
             for t in all_task:
