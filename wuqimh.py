@@ -5,7 +5,7 @@
 # @File    : wuqimh.py
 import js2py
 import re
-from utils import get_html
+from utils import get_html, read_config
 from fake_useragent import UserAgent
 from bs4 import BeautifulSoup
 from common import enter_range
@@ -98,7 +98,7 @@ def run(url):
 
     failure_list = []
     for work in all_task:
-        result = image_download(work.result())
+        result = image_download(work.result(), int(read_config('download', 'semaphore')))
         if result is not None:
             failure_list.append(result)
 

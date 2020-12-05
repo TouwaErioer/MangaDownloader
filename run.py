@@ -10,7 +10,7 @@ from common import yellow_text, blue_text, green_text, pink_text, red_text, ente
 import wuqimh
 import bilibili
 from concurrent.futures import (ALL_COMPLETED, ThreadPoolExecutor, wait)
-from utils import repeat
+from utils import repeat, read_config, write_config
 
 import os
 
@@ -19,67 +19,79 @@ def work(func, args):
     return func.search(args), func
 
 
+def get_manga(option):
+    if option == 'manhuadb':
+        return manhuadb
+    elif option == 'manhuadui':
+        return manhuadui
+    elif option == 'wuqimh':
+        return wuqimh
+    elif option == 'bilibili':
+        return bilibili
+    else:
+        raise TypeError
+
+
 if __name__ == '__main__':
+    search_switch = read_config('search', None)
+    options = [option[0] for option in search_switch if bool(int(option[1]))]
     value = enter_keywords()
     keywords = value if type(value) != tuple else value[0]
     search_author = None if type(value) != tuple else value[1]
     executor = ThreadPoolExecutor(max_workers=5)
-    all_task = [executor.submit(work, func, keywords) for func in [manhuadb, manhuadui, wuqimh, bilibili]]
+    all_task = [executor.submit(work, func, keywords) for func in [get_manga(option) for option in options]]
     wait(all_task, return_when=ALL_COMPLETED)
+    results = []
     for task in all_task:
         result = task.result()
         if result[1] == manhuadb:
-            manhuadb_result = result[0]
+            results.extend(result[0])
         if result[1] == manhuadui:
-            manhuadui_result = result[0]
+            results.extend(result[0])
         if result[1] == wuqimh:
-            wuqimh_result = result[0]
+            results.extend(result[0])
         if result[1] == bilibili:
-            bilibili_result = result[0]
-    result = []
-    result.extend(manhuadb_result)
-    result.extend(manhuadui_result)
-    result.extend(wuqimh_result)
-    result.extend(bilibili_result)
+            results.extend(result[0])
 
     # 表格显示出来
-    if len(result) != 0:
+    if len(results) != 0:
         show = False
         table = PrettyTable(['序号', '标题', '漫画源', '作者', '状态'])
-        for index, value in enumerate(result, 1):
+        for index, value in enumerate(results, 1):
             index = str(index)
             title = str(value['title'])
             url = str(value['url'])
             source = ''
             author = str(value['author'])
             status = '存在'
+            folder = read_config('folder', 'path')
             if search_author is None or author.find(search_author) != -1:
                 show = True
                 if url.find('manhuadb') != -1:
                     index = yellow_text % index
                     source = yellow_text % '漫画DB'
-                    path = '%s/%s' % ('漫画DB', title)
+                    path = '%s%s/%s' % (folder, '漫画DB', title)
                     title = yellow_text % title
                     author = yellow_text % author
                     status = red_text % '存在' if os.path.exists(path) else '不存在'
                 elif url.find('manhuadai') != -1:
                     index = blue_text % index
                     source = blue_text % '漫画堆'
-                    path = '%s/%s' % ('漫画堆', title)
+                    path = '%s%s/%s' % (folder, '漫画堆', title)
                     title = blue_text % title
                     author = blue_text % author
                     status = red_text % '存在' if os.path.exists(path) else '不存在'
                 elif url.find('wuqimh') != -1:
                     index = green_text % index
                     source = green_text % '57漫画'
-                    path = '%s/%s' % ('57漫画', title)
+                    path = '%s%s/%s' % (folder, '57漫画', title)
                     title = green_text % title
                     author = green_text % author
                     status = red_text % '存在' if os.path.exists(path) else '不存在'
                 else:
                     index = pink_text % index
                     source = pink_text % 'bilibili漫画'
-                    path = '%s/%s' % ('bilibili漫画', title)
+                    path = '%s%s/%s' % (folder, 'bilibili漫画', title)
                     title = pink_text % title
                     author = pink_text % author
                     status = red_text % '存在' if os.path.exists(path) else '不存在'
@@ -96,7 +108,7 @@ if __name__ == '__main__':
             while True:
                 try:
                     value = int(input(placeholder) or 1)
-                    if value <= 0 or value > len(result):
+                    if value <= 0 or value > len(results):
                         raise IndexError
                         continue
                     break
@@ -104,7 +116,7 @@ if __name__ == '__main__':
                     print('\033[0;31;40m输入不为数字，请重新输入\033[0m')
                 except IndexError:
                     print('\033[0;31;40m输入超出范围，请重新输入\033[0m')
-            url = str(result[value - 1]['url'])
+            url = str(results[value - 1]['url'])
 
             failure_list = []
 
@@ -115,12 +127,13 @@ if __name__ == '__main__':
             elif url.find('wuqimh') != -1:
                 failure_list = wuqimh.run(url)
             else:
-                cookie = None
-                if cookie is None:
+                cookie = read_config('download', 'cookie')
+                if cookie == '':
                     while True:
                         cookie = input('请输入cookie> ')
                         if cookie == '':
                             raise Exception('输入为空，请重新输入')
+                        write_config('download', 'cookie', cookie)
                         break
                 failure_list = bilibili.run(url, cookie)
             repeat(failure_list, 2)

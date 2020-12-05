@@ -3,7 +3,7 @@
 # @Time    : 2020/12/1 10:05
 # @Author  : DHY
 # @File    : manhuadui.py
-from utils import get_html, image_download, aes_decrypt
+from utils import get_html, image_download, aes_decrypt, read_config
 import re
 from bs4 import BeautifulSoup
 from common import enter_range, enter_branch
@@ -55,7 +55,9 @@ def get_episodes(soup, branch, value):
 
 # 获取图片链接列表
 def get_jpg_list(code, chapter_path):
-    page_list = aes_decrypt(b'KA58ZAQ321oobbG8', b'A1B2C3DEF1G321o8', code)[1:-1].split(',')
+    key = read_config('decrypt', 'key').encode('utf-8')
+    iv = read_config('decrypt', 'iv').encode('utf-8')
+    page_list = aes_decrypt(key, iv, code)[1:-1].split(',')
     jpg_list = []
     for index, p in enumerate(page_list, 1):
         if p.find('ManHuaKu') != -1:
@@ -114,7 +116,7 @@ def run(url):
 
     failure_list = []
     for work in all_task:
-        result = image_download(work.result())
+        result = image_download(work.result(), int(read_config('download', 'semaphore')))
         if result is not None:
             failure_list.append(result)
 

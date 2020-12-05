@@ -112,7 +112,7 @@ def run(comic_id, cookie):
     failure_list = []
     for res in result:
         if res is not None:
-            failures = image_download(res, semaphore=5)
+            failures = image_download(res)
             if failures is not None:
                 failure_list.append(failures)
     return failure_list

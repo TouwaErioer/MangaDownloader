@@ -8,7 +8,7 @@ import re
 from bs4 import BeautifulSoup
 import base64
 import json
-from utils import image_download, get_html
+from utils import image_download, get_html, read_config
 from common import enter_range, enter_branch
 from concurrent.futures import (ALL_COMPLETED, ThreadPoolExecutor, wait)
 
@@ -111,7 +111,7 @@ def run(url):
     wait(all_task, return_when=ALL_COMPLETED)
     failure_list = []
     for work in all_task:
-        result = image_download(work.result())
+        result = image_download(work.result(), int(read_config('download', 'semaphore')))
         if result is not None:
             failure_list.append(result)
     return failure_list

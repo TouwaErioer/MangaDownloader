@@ -13,6 +13,7 @@ import base64
 from fake_useragent import UserAgent
 
 from retrying import retry
+import configparser
 
 
 # 请求
@@ -44,7 +45,7 @@ async def work(task: dict, semaphore):
         return task
 
 
-def image_download(task: dict, semaphore=500):
+def image_download(task: dict, semaphore=5):
     # 参数检查
     if 'title' in task is False and 'episode' in task is False and 'jpg_url_list' in task is False and 'source' in task:
         assert ValueError
@@ -54,16 +55,15 @@ def image_download(task: dict, semaphore=500):
     jpg_url_list = task['jpg_url_list']
     source = task['source']
     headers = task['headers']
-
+    folder = read_config('folder', 'path')
     loop = asyncio.get_event_loop()
     all_task = []
-
     semaphore = asyncio.Semaphore(semaphore)
     for jpg_url in jpg_url_list:
-        if not os.path.exists(source + '/' + title + '/' + episode):
+        if not os.path.exists('%s%s/%s/%s' % (folder, source, title, episode)):
             # 递归创建文件夹
-            os.makedirs(source + '/' + title + '/' + episode)
-        path = '%s/%s/%s/%s' % (source, title, episode, str(jpg_url['page']) + '.jpg')
+            os.makedirs('%s%s/%s/%s' % (folder, source, title, episode))
+        path = '%s%s/%s/%s/%s' % (folder, source, title, episode, str(jpg_url['page']) + '.jpg')
 
         if not os.path.exists(path):
             all_task.append(
@@ -91,7 +91,7 @@ def repeat(failures, count):
     if len(failures) != 0 and count != 0:
         print('\n第%d次重试' % (2 - count + 1))
         for failure in failures:
-            path = str(failure[0]['path']).split('/')
+            path = str(failure[0]['path']).replace(str(read_config('folder', 'path')) + '/', '').split('/')
             res = {
                 'title': path[1],
                 'episode': path[2],
@@ -110,3 +110,32 @@ def repeat(failures, count):
     else:
         for failure in failures:
             print('%s下载失败，%s' % (str(failure['path']).split('/')[1], failure['url']))
+
+
+def read_config(section, item):
+    try:
+        config = configparser.RawConfigParser()
+        config.read('config.ini', encoding='utf-8')
+        if item is None:
+            sections = config.sections()
+            index = sections.index(section)
+            return config.items(sections[index])
+        return str(config.get(section, item))
+    except Exception as e:
+        print(e)
+
+
+def write_config(section, item, value):
+    try:
+        config = configparser.ConfigParser()
+        config.read('config.ini', encoding='utf-8')
+        config.set(section, item, value)
+        config.write(open('config.ini', 'w'))
+    except Exception as e:
+        print(e)
+
+
+if __name__ == '__main__':
+    search_switch = read_config('search', None)
+    search = [option[0] for option in search_switch if bool(int(option[1]))]
+    print(search)
