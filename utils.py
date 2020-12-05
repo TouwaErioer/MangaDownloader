@@ -89,11 +89,12 @@ def aes_decrypt(key, iv, content):
 def repeat(failures, count):
     tasks = []
     if len(failures) != 0 and count != 0:
+        print('第%d次重试' % (2 - count + 1))
         for failure in failures:
             path = str(failure[0]['path']).split('/')
             res = {
                 'title': path[1],
-                'episode': '第%d次重试->' % (2 - count + 1) + path[2],
+                'episode': path[2],
                 'jpg_url_list': [],
                 'source': path[0],
                 'headers': failure[0]['headers']

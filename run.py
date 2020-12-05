@@ -6,11 +6,13 @@
 import manhuadb
 import manhuadui
 from prettytable import PrettyTable
-from common import yellow_text, blue_text, green_text, pink_text
+from common import yellow_text, blue_text, green_text, pink_text, red_text
 import wuqimh
 import bilibili
 from concurrent.futures import (ALL_COMPLETED, ThreadPoolExecutor, wait)
 from utils import repeat
+
+import os
 
 
 def work(func, args):
@@ -39,34 +41,43 @@ if __name__ == '__main__':
     result.extend(bilibili_result)
 
     # 表格显示出来
-    table = PrettyTable(['序号', '标题', '漫画源', '作者', '速度'])
+    table = PrettyTable(['序号', '标题', '漫画源', '作者', '状态'])
     for index, value in enumerate(result, 1):
         index = str(index)
         title = str(value['title'])
         url = str(value['url'])
         source = ''
         author = str(value['author'])
+        status = '存在'
         if url.find('manhuadb') != -1:
             index = yellow_text % index
             source = yellow_text % '漫画DB'
+            path = '%s/%s' % ('漫画DB', title)
             title = yellow_text % title
             author = yellow_text % author
+            status = red_text % '存在' if os.path.exists(path) else '不存在'
         elif url.find('manhuadai') != -1:
             index = blue_text % index
             source = blue_text % '漫画堆'
+            path = '%s/%s' % ('漫画堆', title)
             title = blue_text % title
             author = blue_text % author
+            status = red_text % '存在' if os.path.exists(path) else '不存在'
         elif url.find('wuqimh') != -1:
             index = green_text % index
             source = green_text % '57漫画'
+            path = '%s/%s' % ('57漫画', title)
             title = green_text % title
             author = green_text % author
+            status = red_text % '存在' if os.path.exists(path) else '不存在'
         else:
             index = pink_text % index
             source = pink_text % 'bilibili漫画'
+            path = '%s/%s' % ('bilibili漫画', title)
             title = pink_text % title
             author = pink_text % author
-        table.add_row([index, title, source, author, 1])
+            status = red_text % '存在' if os.path.exists(path) else '不存在'
+        table.add_row([index, title, source, author, status])
     table.align['序号'] = 'l'
     table.align['标题'] = 'l'
     table.align['漫画源'] = 'l'
