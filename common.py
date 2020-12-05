@@ -63,5 +63,37 @@ def enter_branch(tab: dict):
             print('\033[0;31;40m超出分支范围\033[0m')
 
 
+def enter_command():
+    while True:
+        try:
+            command = input('MangaDownloader> ') or 'start'
+            if command != 'start' and command != 'help':
+                raise ValueError
+            else:
+                if command == 'start':
+                    break
+                elif command == 'help':
+                    print(blue_text % '\n输入关键词格式：')
+                    print(green_text % '-[keywords] 查询标题为keywords的漫画')
+                    print(green_text % '-[keywords:author] 查询标题为keywords，作者名为的漫画\n', )
+
+                    print(blue_text % '输入范围格式：')
+                    print(green_text % '-[x:y] 从x开始y结束')
+                    print(green_text % '-[y] 从1开始y结束\n')
+        except ValueError:
+            print(red_text % '输入命令有误')
+
+
+def enter_keywords():
+    keywords = input('请输入关键词> ') or '辉夜'
+    if keywords.find(':') != -1:
+        value = keywords.split(':')
+        keywords = value[0]
+        author = value[1]
+        return keywords, author
+    else:
+        return keywords
+
+
 if __name__ == '__main__':
-    print(enter_range([1, 1]))
+    print(enter_command())

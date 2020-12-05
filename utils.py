@@ -25,7 +25,7 @@ def get_html(url, headers):
         response.encoding = 'utf-8'
         return response
     except Exception:
-        pass
+        print('请求错误，%s', url)
 
 
 # 异步下载图片
@@ -89,7 +89,7 @@ def aes_decrypt(key, iv, content):
 def repeat(failures, count):
     tasks = []
     if len(failures) != 0 and count != 0:
-        print('第%d次重试' % (2 - count + 1))
+        print('\n第%d次重试' % (2 - count + 1))
         for failure in failures:
             path = str(failure[0]['path']).split('/')
             res = {
