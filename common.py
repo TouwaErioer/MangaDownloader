@@ -3,7 +3,11 @@
 # @Time    : 2020/12/1 12:54
 # @Author  : DHY
 # @File    : common.py
+import configparser
+
 from prettytable import PrettyTable
+
+from utils import read_config, write_config
 
 yellow_text = '\33[1;33m%s\033[0m'
 blue_text = '\33[1;34m%s\033[0m'
@@ -95,5 +99,66 @@ def enter_keywords():
         return keywords
 
 
+def enter_cookie():
+    cookie = read_config('download', 'cookie')
+    if cookie == '':
+        while True:
+            cookie = input('请输入cookie> ')
+            if cookie == '':
+                raise Exception('输入为空，请重新输入')
+            write_config('download', 'cookie', cookie)
+            break
+    return cookie
+
+
+def enter_index(results):
+    placeholder = '请输入序号> '
+    while True:
+        try:
+            value = int(input(placeholder) or 1)
+            if value <= 0 or value > results:
+                raise IndexError
+                continue
+            return value
+        except ValueError:
+            print('\033[0;31;40m输入不为数字，请重新输入\033[0m')
+        except IndexError:
+            print('\033[0;31;40m输入超出范围，请重新输入\033[0m')
+
+
+def check_config():
+    try:
+        config = configparser.RawConfigParser()
+        config.read('config.ini', encoding='utf-8')
+        sections = config.sections()
+
+        folder = sections[sections.index('folder')]
+        download = sections[sections.index('download')]
+        site = sections[sections.index('site')]
+        decrypt = sections[sections.index('decrypt')]
+        search = sections[sections.index('search')]
+        path = config.get(folder, 'path')
+        semaphore = config.get(download, 'semaphore')
+        cookie = config.get(download, 'cookie')
+        repeat = config.get(download, 'repeat')
+        manhuadb = config.get(site, 'manhuadb')
+        manhuadui = config.get(site, 'manhuadui')
+        wuqimh = config.get(site, 'wuqimh')
+        bilibili = config.get(site, 'bilibili')
+        key = config.get(decrypt, 'key')
+        iv = config.get(decrypt, 'iv')
+        search_manhuadb = config.get(search, 'manhuadb')
+        search_manhuadui = config.get(search, 'manhuadui')
+        search_wuqimh = config.get(search, 'wuqimh')
+        search_bilibili = config.get(search, 'bilibili')
+        if semaphore and repeat and manhuadb and manhuadui and wuqimh and bilibili and key and iv and search_manhuadb \
+                and search_manhuadui and search_wuqimh and search_bilibili:
+            pass
+        else:
+            raise ValueError(red_text % '必填参数不能为空')
+    except Exception as e:
+        print(red_text % 'config.ini参数错误，%s' % e)
+
+
 if __name__ == '__main__':
-    print(enter_command())
+    check_config()

@@ -9,6 +9,9 @@ import io
 import json
 import zipfile
 
+from MangaParser import MangaParser
+from manhuadb import manhuadb
+
 
 def unsuan(s):
     x = s[-1]
@@ -51,5 +54,4 @@ def unhashContent(hashKey, indexData):
 
 
 if __name__ == '__main__':
-
-    print('{0:{1}^20}'.format('manhuadb',chr(12288)))
+    print(isinstance(manhuadb(), MangaParser))

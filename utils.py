@@ -25,8 +25,8 @@ def get_html(url, headers):
         response.raise_for_status()
         response.encoding = 'utf-8'
         return response
-    except Exception:
-        print('请求错误，%s', url)
+    except Exception as e:
+        print('请求错误，%s，%s' % (url, e))
 
 
 # 异步下载图片
@@ -91,7 +91,7 @@ def repeat(failures, count):
     if len(failures) != 0 and count != 0:
         print('\n第%d次重试' % (2 - count + 1))
         for failure in failures:
-            path = str(failure[0]['path']).replace(str(read_config('folder', 'path')) + '/', '').split('/')
+            path = str(failure[0]['path']).replace(str(read_config('folder', 'path')), '').split('/')
             res = {
                 'title': path[1],
                 'episode': path[2],
@@ -108,8 +108,9 @@ def repeat(failures, count):
         if failures is not None:
             repeat(failures, count - 1)
     else:
-        for failure in failures:
-            print('%s下载失败，%s' % (str(failure['path']).split('/')[1], failure['url']))
+        if len(failures) != 0:
+            for failure in failures:
+                print('%s下载失败，%s' % (str(failure['path']).split('/')[1], failure['url']))
 
 
 def read_config(section, item):
