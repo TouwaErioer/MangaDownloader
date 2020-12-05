@@ -66,10 +66,10 @@ def get_image_url(comic_id, ep, cookie, title):
         res = requests.post(ImageToken, data={"urls": json.dumps(data["pics"])}, headers=headers)
         result = ["{}?token={}".format(i["url"], i["token"]) for i in res.json()["data"]]
         task = {
-            'title': '[bilibili漫画]' + title,
+            'title': title,
             'episode': ep_title,
             'jpg_url_list': [{'url': res, 'page': index} for index, res in enumerate(result, 1)],
-            'pages': len(result),
+            'source': 'bilibili漫画',
             'headers': headers
         }
 
@@ -109,7 +109,12 @@ def run(comic_id, cookie):
     all_task = [executor.submit(get_image_url, comic_id, ep, cookie, title) for ep in ep_list[enter[0]:enter[1]]]
     wait(all_task, return_when=ALL_COMPLETED)
     result = [task.result() for task in all_task]
-    failure_list = [image_download(res, semaphore=5) for res in result if res is not None]
+    failure_list = []
+    for res in result:
+        if res is not None:
+            failures = image_download(res, semaphore=5)
+            if failures is not None:
+                failure_list.append(failures)
     return failure_list
 
 

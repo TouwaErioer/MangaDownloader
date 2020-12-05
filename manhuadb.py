@@ -72,10 +72,10 @@ def works(url, title):
     episode = re.findall('<h2 class="h4 text-center">(.*?)</h2>', html)[0]
     pages = int(re.findall(r'共 (\d*) 页', html)[0])
     task = {
-        'title': '[漫画DB]' + title,
+        'title': title,
         'episode': episode,
         'jpg_url_list': [],
-        'pages': pages,
+        'source': '漫画DB',
         'headers': image_headers
     }
     for res in result:
@@ -112,6 +112,6 @@ def run(url):
     failure_list = []
     for work in all_task:
         result = image_download(work.result())
-        if len(result) != 0:
+        if result is not None:
             failure_list.append(result)
     return failure_list

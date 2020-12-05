@@ -67,11 +67,11 @@ def works(link, title):
     episode = re.findall('<h2>(.*?)</h2>', html.text)[0]
     headers['Referer'] = 'http://www.wuqimh.com/'
     headers.pop('Host')
-    task = {'title': '[57漫画]' + title,
+    task = {'title': title,
             'episode': episode,
             'jpg_url_list': [{'url': 'http://images.720rs.com' + jpg, 'page': index} for index, jpg in
                              enumerate(jpg_list, 1)],
-            'pages': len(jpg_list),
+            'source': '57漫画',
             'headers': headers
             }
     return task
@@ -99,7 +99,7 @@ def run(url):
     failure_list = []
     for work in all_task:
         result = image_download(work.result())
-        if len(result) != 0:
+        if result is not None:
             failure_list.append(result)
 
     return failure_list

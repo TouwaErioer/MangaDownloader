@@ -46,13 +46,13 @@ async def work(task: dict, semaphore):
 
 def image_download(task: dict, semaphore=500):
     # 参数检查
-    if 'title' in task is False and 'episode' in task is False and 'jpg_url_list' in task is False and 'pages' in task:
+    if 'title' in task is False and 'episode' in task is False and 'jpg_url_list' in task is False and 'source' in task:
         assert ValueError
 
     title = task['title']
     episode = task['episode']
     jpg_url_list = task['jpg_url_list']
-    pages = task['pages']
+    source = task['source']
     headers = task['headers']
 
     loop = asyncio.get_event_loop()
@@ -60,10 +60,10 @@ def image_download(task: dict, semaphore=500):
 
     semaphore = asyncio.Semaphore(semaphore)
     for jpg_url in jpg_url_list:
-        if not os.path.exists(title + '/' + episode):
+        if not os.path.exists(source + '/' + title + '/' + episode):
             # 递归创建文件夹
-            os.makedirs(title + '/' + episode)
-        path = '%s/%s/%s' % (title, episode, str(jpg_url['page']) + '.jpg')
+            os.makedirs(source + '/' + title + '/' + episode)
+        path = '%s/%s/%s/%s' % (source, title, episode, str(jpg_url['page']) + '.jpg')
 
         if not os.path.exists(path):
             all_task.append(
@@ -75,7 +75,8 @@ def image_download(task: dict, semaphore=500):
             loop.run_until_complete(asyncio.wait(all_task))
     failure_list = [task.result() for task in all_task if task.result() is not None]
 
-    return failure_list
+    if len(failure_list) != 0:
+        return failure_list
 
 
 def aes_decrypt(key, iv, content):
@@ -83,3 +84,28 @@ def aes_decrypt(key, iv, content):
     content = base64.b64decode(content)
     text = cipher.decrypt(content).decode('utf-8')
     return text.strip()
+
+
+def repeat(failures, count):
+    tasks = []
+    if len(failures) != 0 and count != 0:
+        for failure in failures:
+            path = str(failure[0]['path']).split('/')
+            res = {
+                'title': path[1],
+                'episode': '第%d次重试->' % (2 - count + 1) + path[2],
+                'jpg_url_list': [],
+                'source': path[0],
+                'headers': failure[0]['headers']
+            }
+            for failure_task in failure:
+                res['jpg_url_list'].append(
+                    {'url': failure_task['url'], 'page': str(failure_task['path']).split('/')[-1].split('.')[0]})
+                tasks.append(res)
+            for task in tasks:
+                failures = image_download(task)
+        if failures is not None:
+            repeat(failures, count - 1)
+    else:
+        for failure in failures:
+            print('%s下载失败，%s' % (str(failure['path']).split('/')[1], failure['url']))

@@ -3,7 +3,7 @@
 # @Time    : 2020/12/1 12:54
 # @Author  : DHY
 # @File    : common.py
-
+from prettytable import PrettyTable
 
 yellow_text = '\33[1;33m%s\033[0m'
 blue_text = '\33[1;34m%s\033[0m'
@@ -41,20 +41,22 @@ def enter_branch(tab: dict):
         try:
             # 分支大于1，选择分支
             if len(tab) > 1:
-                placeholder = '查询到多个分支\n'
+                table = PrettyTable(['序号', '分支'])
                 for index, value in enumerate(list(tab.keys()), 1):
-                    placeholder += str(index) + '、' + value + '\n'
-                placeholder += '请输入序号> '
-                value = int(input(placeholder) or 1) - 1
+                    table.add_row([index, value])
+                table.align['序号'] = 'l'
+                table.align['分支'] = 'l'
+                print(table)
+                placeholder = '查询到多个分支，请输入序号> '
+                value = int(input(placeholder) or 1)
             else:
-                value = 0
+                value = 1
 
             # 输入分支检查
-            if value > len(list(tab.keys())) or value < 0:
+            if value > len(tab.keys()) or value <= 0:
                 raise IndexError
-            return value
+            return value - 1
         except ValueError:
-
             print('\033[0;31;40m输入不为数字\033[0m')
         except IndexError:
             print('\033[0;31;40m超出分支范围\033[0m')

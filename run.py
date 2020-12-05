@@ -3,7 +3,6 @@
 # @Time    : 2020/12/1 12:54
 # @Author  : DHY
 # @File    : run.py
-
 import manhuadb
 import manhuadui
 from prettytable import PrettyTable
@@ -11,27 +10,11 @@ from common import yellow_text, blue_text, green_text, pink_text
 import wuqimh
 import bilibili
 from concurrent.futures import (ALL_COMPLETED, ThreadPoolExecutor, wait)
+from utils import repeat
 
 
 def work(func, args):
     return func.search(args), func
-
-
-def repeat(failures):
-    tasks = []
-    if len(failures) != 0:
-        for failure in failures:
-            path = str(failure[0]['path']).split('/')
-            res = {
-                'title': path[0],
-                'episode': path[1],
-                'jpg_url_list': [],
-                'pages': len(failure),
-                'headers': failure[0]['headers']
-            }
-            res['jpg_url_list'].append(
-                [{'url': task['url'], 'page': str(task['path']).split('/')[-1].split('.')[0]} for task in failure])
-            tasks.append(res)
 
 
 if __name__ == '__main__':
@@ -56,25 +39,30 @@ if __name__ == '__main__':
     result.extend(bilibili_result)
 
     # 表格显示出来
-    table = PrettyTable(['序号', '标题', '漫画源', '作者', '话数'])
+    table = PrettyTable(['序号', '标题', '漫画源', '作者', '速度'])
     for index, value in enumerate(result, 1):
+        index = str(index)
         title = str(value['title'])
         url = str(value['url'])
         source = ''
         author = str(value['author'])
         if url.find('manhuadb') != -1:
+            index = yellow_text % index
             source = yellow_text % '漫画DB'
             title = yellow_text % title
             author = yellow_text % author
         elif url.find('manhuadai') != -1:
+            index = blue_text % index
             source = blue_text % '漫画堆'
             title = blue_text % title
             author = blue_text % author
         elif url.find('wuqimh') != -1:
+            index = green_text % index
             source = green_text % '57漫画'
             title = green_text % title
             author = green_text % author
         else:
+            index = pink_text % index
             source = pink_text % 'bilibili漫画'
             title = pink_text % title
             author = pink_text % author
@@ -118,7 +106,4 @@ if __name__ == '__main__':
                     raise Exception('输入为空，请重新输入')
                 break
         failure_list = bilibili.run(url, cookie)
-
-    if len(failure_list) != 0:
-        print('重试')
-        print(failure_list)
+    repeat(failure_list, 2)

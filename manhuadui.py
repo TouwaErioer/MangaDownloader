@@ -83,7 +83,7 @@ def works(url, title):
     code = re.findall("var chapterImages =\\s*\"(.*?)\"", response.text)[0]
     chapter_path = re.findall("var chapterPath = \"(.*?)\"", response.text)[0]
     jpg_list = get_jpg_list(code, chapter_path)
-    task = {'title': '[漫画堆]' + title, 'episode': episode, 'jpg_url_list': jpg_list, 'pages': len(jpg_list),
+    task = {'title': title, 'episode': episode, 'jpg_url_list': jpg_list, 'source': '漫画堆',
             'headers': headers}
     return task
 
@@ -115,7 +115,7 @@ def run(url):
     failure_list = []
     for work in all_task:
         result = image_download(work.result())
-        if len(result) != 0:
+        if result is not None:
             failure_list.append(result)
 
     return failure_list
