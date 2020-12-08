@@ -3,55 +3,34 @@
 # @Time    : 2020/12/2 19:58
 # @Author  : DHY
 # @File    : test.py
-import re
-import requests
-import io
-import json
+import os
 import zipfile
 
-from MangaParser import MangaParser
-from manhuadb import manhuadb
+import fake_useragent
+from flask import send_from_directory, Flask, make_response
+
+app = Flask(__name__)
 
 
-def unsuan(s):
-    x = s[-1]
-    w = "abcdefghijklmnopqrstuvwxyz"
-    xi = w.find(x) + 1
-    sk = s[len(s) - xi - 12:len(s) - xi - 1]
-    s = s[0:len(s) - xi - 12]
-    k = sk[0:len(sk) - 1]
-    f = sk[(len(k) - 1):]
-    for index, value in enumerate(k, 0):
-        s = s.replace(k[index:index + 1], str(index))
-    ss = re.split(r'[%s%s\s]\s*' % (f[0], f[1]), s)
-    s = ''
-    for value in ss:
-        s += chr(int(value))
-    return s
+@app.route("/download/<filename>", methods=['GET'])
+def download_file(filename):
+    # 需要知道2个参数, 第1个参数是本地目录的path, 第2个参数是文件名(带扩展名)
+    directory = os.getcwd()  # 假设在当前目录
+    response = make_response(send_from_directory(directory, filename, as_attachment=True))
+    response.headers["Content-Disposition"] = "attachment; filename={}".format(filename.encode().decode('latin-1'))
+    return response
 
 
-def generateHashKey(seasonId, episodeId):
-    n = [None for i in range(8)]
-    e = int(seasonId)
-    t = int(episodeId)
-    n[0] = t
-    n[1] = t >> 8
-    n[2] = t >> 16
-    n[3] = t >> 24
-    n[4] = e
-    n[5] = e >> 8
-    n[6] = e >> 16
-    n[7] = e >> 24
-    for idx in range(8):
-        n[idx] = n[idx] % 256
-    return n
-
-
-def unhashContent(hashKey, indexData):
-    for idx in range(len(indexData)):
-        indexData[idx] ^= hashKey[idx % 8]
-    return bytes(indexData)
+def make_zip(source_dir, output_filename):
+    file = zipfile.ZipFile(output_filename, 'w')
+    pre_len = len(os.path.dirname(source_dir))
+    for parent, dir_name, filenames in os.walk(source_dir):
+        for filename in filenames:
+            path_file = os.path.join(parent, filename)
+            arc_name = path_file[pre_len:].strip(os.path.sep)  # 相对路径
+            file.write(path_file, arc_name)
+    file.close()
 
 
 if __name__ == '__main__':
-    print(isinstance(manhuadb(), MangaParser))
+    print(fake_useragent.UserAgent().firefox)

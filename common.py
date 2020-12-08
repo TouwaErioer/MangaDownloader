@@ -28,11 +28,13 @@ def enter_range(pages: list):
                 end = int(input_arr[1])
                 if end > len(pages) or end <= 0 and start > len(pages) or end < 0:
                     raise IndexError
+            elif end == 'help' or end == 'h':
+                print_help('range')
             else:
                 end = int(end)
                 if end > len(pages) or end <= 0:
                     raise IndexError
-            return start, end
+                return start, end
         except TypeError:
             print('\033[0;31;40m输入不是数字，重新输入\033[0m')
         except ValueError:
@@ -42,29 +44,31 @@ def enter_range(pages: list):
 
 
 def enter_branch(tab: dict):
-    while True:
-        try:
-            # 分支大于1，选择分支
-            if len(tab) > 1:
-                table = PrettyTable(['序号', '分支'])
-                for index, value in enumerate(list(tab.keys()), 1):
-                    table.add_row([index, value])
-                table.align['序号'] = 'l'
-                table.align['分支'] = 'l'
-                print(table)
+    # 分支大于1，选择分支
+    if len(tab) > 1:
+        table = PrettyTable(['序号', '分支'])
+        for index, value in enumerate(list(tab.keys()), 1):
+            table.add_row([index, value])
+        table.align['序号'] = 'l'
+        table.align['分支'] = 'l'
+        print(table)
+        while True:
+            try:
                 placeholder = '查询到多个分支，请输入序号> '
-                value = int(input(placeholder) or 1)
-            else:
-                value = 1
-
-            # 输入分支检查
-            if value > len(tab.keys()) or value <= 0:
-                raise IndexError
-            return value - 1
-        except ValueError:
-            print('\033[0;31;40m输入不为数字\033[0m')
-        except IndexError:
-            print('\033[0;31;40m超出分支范围\033[0m')
+                value = input(placeholder) or 1
+                # 输入分支检查
+                if value == 'help' or value == 'h':
+                    print_help('请输入分支序号，不能输入大于或小于序号的数字')
+                elif int(value) > len(tab.keys()) or int(value) <= 0:
+                    raise IndexError
+                else:
+                    return int(value) - 1
+            except ValueError:
+                print('\033[0;31;40m输入不为数字\033[0m')
+            except IndexError:
+                print('\033[0;31;40m超出分支范围\033[0m')
+    else:
+        return 0
 
 
 def enter_command():
@@ -76,37 +80,49 @@ def enter_command():
             else:
                 if command == 'start':
                     break
-                elif command == 'help':
-                    print(blue_text % '\n输入关键词格式：')
-                    print(green_text % '-[keywords] 查询标题为keywords的漫画')
-                    print(green_text % '-[keywords:author] 查询标题为keywords，作者名为的漫画\n', )
-
-                    print(blue_text % '输入范围格式：')
-                    print(green_text % '-[x:y] 从x开始y结束')
-                    print(green_text % '-[y] 从1开始y结束\n')
+                elif command == 'help' or 'h':
+                    print_help()
         except ValueError:
             print(red_text % '输入命令有误')
 
 
-def enter_keywords():
-    keywords = input('请输入关键词> ') or '辉夜'
-    if keywords.find(':') != -1:
-        value = keywords.split(':')
-        keywords = value[0]
-        author = value[1]
-        return keywords, author
+def print_help(enter_type):
+    if enter_type == 'keywords':
+        print(green_text % '-[keywords] 标题')
+        print(green_text % '-[keywords:author] 标题:作者', )
+    elif enter_type == 'range':
+        print(green_text % '-[x:y] x ~ y')
+        print(green_text % '-[y] 1 ~ y')
+    elif enter_type == 'cookie':
+        print(green_text % '-[cookie] 请输入bilibili漫画cookie')
     else:
-        return keywords
+        print(green_text % enter_type)
 
 
-def enter_cookie():
-    cookie = read_config('download', 'cookie')
+def enter_keywords():
+    while True:
+        keywords = input('请输入关键词> ') or '辉夜'
+        if keywords.find(':') != -1:
+            value = keywords.split(':')
+            keywords = value[0]
+            author = value[1]
+            return keywords, author
+        elif keywords == 'help' or keywords == 'h':
+            print_help('keywords')
+        else:
+            return keywords
+
+
+def enter_cookie(config):
+    cookie = config['cookie']
     if cookie == '':
         while True:
             cookie = input('请输入cookie> ')
             if cookie == '':
                 raise Exception('输入为空，请重新输入')
-            write_config('download', 'cookie', cookie)
+            elif cookie == 'help' or cookie == 'h':
+                print_help('cookie')
+            write_config('bilibili', 'cookie', cookie)
             break
     return cookie
 
@@ -115,11 +131,14 @@ def enter_index(results):
     placeholder = '请输入序号> '
     while True:
         try:
-            value = int(input(placeholder) or 1)
-            if value <= 0 or value > results:
+            value = input(placeholder) or 1
+            if value == 'help' or value == 'h':
+                print_help('请输入结果序号，不能输入大于或小于序号的数字')
+            elif int(value) <= 0 or int(value) > results:
                 raise IndexError
                 continue
-            return value
+            else:
+                return int(value)
         except ValueError:
             print('\033[0;31;40m输入不为数字，请重新输入\033[0m')
         except IndexError:

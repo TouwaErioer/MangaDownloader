@@ -8,35 +8,42 @@ from MangaParser import MangaParser
 from utils import get_html, image_download, aes_decrypt
 import re
 from bs4 import BeautifulSoup
-from common import enter_range, enter_branch, blue_text
+from common import enter_range, enter_branch
 from concurrent.futures import (ALL_COMPLETED, ThreadPoolExecutor, wait)
+from fake_useragent import UserAgent
 
 
 class manhuadui(MangaParser):
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) '
-                      'Chrome/66.0.3359.139 Safari/537.36',
-    }
-    source = '漫画堆'
 
     def __init__(self, config):
-        self.host = 'https://www.manhuadai.com/'
-        self.color = blue_text
-        self.config = config
+        self.config = config.manhuadui
+        self.site = self.config['site']
+        self.name = self.config['name']
+        self.color = '\33[1;34m%s\033[0m'
+        self.image_site = self.config['image-site']
+        self.search_url = self.config['search-url']
+        self.tor = bool(int(self.config.download['tor']))
+        self.headers = {
+            'User-Agent': UserAgent().random
+        }
 
     # 搜索
     def search(self, keywords: str):
-        search_response = get_html('https://www.manhuadai.com/search/?keywords=' + keywords, headers=self.headers)
-        search_soup = BeautifulSoup(search_response.content, 'lxml')
-        results = search_soup.select('.list-comic')
-        result_list = []
-        for result in results:
-            author = result.select('.auth')[0].get_text()
-            a = result.select('a')[1]
-            result_list.append(
-                {'title': self.color % a.get('title'), 'url': a.get('href'), 'author': self.color % author,
-                 'source': self.color % self.source})
-        return result_list
+        try:
+            url = self.search_url % keywords
+            search_response = get_html(url, headers=self.headers, tor=self.tor)
+            search_soup = BeautifulSoup(search_response.content, 'lxml')
+            results = search_soup.select('.list-comic')
+            result_list = []
+            for result in results:
+                author = result.select('.auth')[0].get_text()
+                a = result.select('a')[1]
+                result_list.append(
+                    {'title': self.color % a.get('title'), 'url': a.get('href'), 'author': self.color % author,
+                     'source': self.color % self.name, 'path': '%s/%s' % (self.name, a.get('title'))})
+            return result_list
+        except Exception as e:
+            print('请求错误，%s，%s' % (url, e))
 
     # 获取分支
     def get_branch(self, soup):
@@ -56,13 +63,13 @@ class manhuadui(MangaParser):
         select_page = soup.select('#chapter-list-' + data_key + ' a')
         pages = []
         for page in select_page:
-            pages.append(self.host + page.get('href'))
+            pages.append(self.site + page.get('href'))
         return pages
 
     # 获取图片链接列表
     def get_jpg_list(self, code, chapter_path):
-        key = self.config.key.encode('utf-8')
-        iv = self.config.iv.encode('utf-8')
+        key = self.config['key'].encode('utf-8')
+        iv = self.config['iv'].encode('utf-8')
         page_list = aes_decrypt(key, iv, code)[1:-1].split(',')
         jpg_list = []
         for index, p in enumerate(page_list, 1):
@@ -74,12 +81,12 @@ class manhuadui(MangaParser):
             else:
                 if p.find(']') != -1:
                     jpg_list.append(
-                        {'url': 'https://manga.mipcdn.com/i/s/img01.eshanyao.com/' + chapter_path +
+                        {'url': self.image_site + chapter_path +
                                 p.replace('"', '').split(']')[0],
                          'page': index})
                 else:
                     jpg_list.append(
-                        {'url': 'https://manga.mipcdn.com/i/s/img01.eshanyao.com/' + chapter_path + p.replace('"', ''),
+                        {'url': self.image_site + chapter_path + p.replace('"', ''),
                          'page': index})
         return jpg_list
 
@@ -90,7 +97,7 @@ class manhuadui(MangaParser):
         code = re.findall("var chapterImages =\\s*\"(.*?)\"", response.text)[0]
         chapter_path = re.findall("var chapterPath = \"(.*?)\"", response.text)[0]
         jpg_list = self.get_jpg_list(code, chapter_path)
-        task = {'title': title, 'episode': episode, 'jpg_url_list': jpg_list, 'source': '漫画堆',
+        task = {'title': title, 'episode': episode, 'jpg_url_list': jpg_list, 'source': self.name,
                 'headers': self.headers}
         return task
 
@@ -120,7 +127,7 @@ class manhuadui(MangaParser):
 
         failure_list = []
         for work in all_task:
-            result = image_download(work.result(), self.config.semaphore)
+            result = image_download(work.result(), semaphore=int(self.config['semaphore']), tor=self.tor)
             if result is not None:
                 failure_list.append(result)
 

@@ -3,6 +3,7 @@
 # @Time    : 2020/11/29 16:44
 # @Author  : DHY
 # @File    : utils.py
+import zipfile
 import aiohttp
 import asyncio
 import os
@@ -11,33 +12,41 @@ from tqdm import tqdm
 from Crypto.Cipher import AES
 import base64
 from fake_useragent import UserAgent
-
 from retrying import retry
 import configparser
+from stem.control import Controller
+from stem import Signal
 
 
 # 请求
 @retry(stop_max_attempt_number=2, wait_fixed=1000)
-def get_html(url, headers):
-    try:
+def get_html(url, headers, tor=False):
+    proxies = None
+    if tor:
+        proxies = {'http': 'http://127.0.0.1:8118', 'https': 'http://127.0.0.1:8118'}
+    if str(url).find('manhuadb') != -1:
+        pass
+    else:
         headers['User-Agent'] = UserAgent().random
-        response = requests.get(url, headers=headers, timeout=5)
-        response.raise_for_status()
-        response.encoding = 'utf-8'
-        return response
-    except Exception as e:
-        print('请求错误，%s，%s' % (url, e))
+    response = requests.get(url, headers=headers, timeout=5, proxies=proxies)
+    response.raise_for_status()
+    response.encoding = 'utf-8'
+    return response
 
 
 # 异步下载图片
 @retry(stop_max_attempt_number=5, wait_fixed=2000)  # 报错重试5次，每隔2秒
-async def work(task: dict, semaphore):
+async def work(task: dict, semaphore, tor=False):
     try:
         async with semaphore:
+            proxies = None
+            if tor:
+                proxies = {'http': 'http://127.0.0.1:8118', 'https': 'http://127.0.0.1:8118'}
             headers = task['headers']
             headers['User-Agent'] = UserAgent().random
             async with aiohttp.ClientSession() as session:
-                response = await session.get(task['url'], headers=headers, timeout=10)
+                session.proxies = proxies
+                response = await session.get(task['url'], headers=headers, timeout=5)
                 content = await response.read()
                 with open(task['path'], 'wb') as f:
                     f.write(content)
@@ -136,7 +145,22 @@ def write_config(section, item, value):
         print(e)
 
 
+def make_zip(source_dir, output_filename):
+    file = zipfile.ZipFile(output_filename, 'w')
+    pre_len = len(os.path.dirname(source_dir))
+    for parent, dir_name, filenames in tqdm(os.walk(source_dir), total=pre_len, desc='压缩中'):
+        for filename in filenames:
+            path_file = os.path.join(parent, filename)
+            arc_name = path_file[pre_len:].strip(os.path.sep)  # 相对路径
+            file.write(path_file, arc_name)
+    file.close()
+
+
+def switch_ip():
+    with Controller.from_port(port=9051) as controller:
+        controller.authenticate()
+        controller.signal(Signal.NEWNYM)
+
+
 if __name__ == '__main__':
-    search_switch = read_config('search', None)
-    search = [option[0] for option in search_switch if bool(int(option[1]))]
-    print(search)
+    switch_ip()

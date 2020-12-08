@@ -10,39 +10,45 @@ import json
 import zipfile
 
 from MangaParser import MangaParser
-from common import enter_range, pink_text, enter_cookie
+from common import enter_range, enter_cookie
 from concurrent.futures import (ALL_COMPLETED, ThreadPoolExecutor, wait)
 from utils import image_download
 
 
 class bilibili(MangaParser):
-    SEARCH_API = 'https://manga.bilibili.com/twirp/comic.v1.Comic/Search?device=pc&platform=web'
-    ComicDetail_API = 'https://manga.bilibili.com/twirp/comic.v1.Comic/ComicDetail?device=h5&platform=h5'
-    Index_API = 'https://manga.bilibili.com/twirp/comic.v1.Comic/Index?device=h5&platform=h5'
-    ImageToken = 'https://manga.bilibili.com/twirp/comic.v1.Comic/ImageToken?device=h5&platform=h5'
-    Host = 'https://manga.bilibili.com'
-    headers = {
-        'origin': Host,
-        'User-Agent': UserAgent().random
-    }
-    source = 'bilibili漫画'
 
     def __init__(self, config):
-        self.color = pink_text
-        self.source = 'bilibili漫画'
-        self.config = config
+        self.config = config.bilibili
+        self.color = '\33[1;35m%s\033[0m'
+        self.name = self.config['name']
+        self.SEARCH_API = self.config['search-api']
+        self.ComicDetail_API = self.config['comic-detail-api']
+        self.Index_API = self.config['index-api']
+        self.ImageToken = self.config['image-token-api']
+        self.host = self.config['host']
+        self.cookie = enter_cookie(self.config)
+        self.tor = bool(int(self.config.download['tor']))
+        self.headers = {
+            'origin': self.host,
+            'User-Agent': UserAgent().random
+        }
 
     def search(self, keywords):
-        self.headers['referer'] = 'https://manga.bilibili.com/search?from=manga_detail&keyword='
-        response = requests.post(self.SEARCH_API, data={'key_word': keywords, 'page_num': 1, 'page_size': 20},
-                                 headers=self.headers)
-        result = response.json()['data']['list']
-        return [{
-            'title': self.color % str(res['title']).replace('<em class=\"keyword\">', '').replace('</em>', ''),
-            'url': str(res['id']),
-            'author': self.color % res['author_name'][0].replace('<em class=\"keyword\">', '').replace('</em>', ''),
-            'source': self.color % self.source
-        } for res in result]
+        try:
+            self.headers['referer'] = 'https://manga.bilibili.com/search?from=manga_detail&keyword='
+            response = requests.post(self.SEARCH_API, data={'key_word': keywords, 'page_num': 1, 'page_size': 20},
+                                     headers=self.headers)
+            result = response.json()['data']['list']
+            return [{
+                'title': self.color % str(res['title']).replace('<em class=\"keyword\">', '').replace('</em>', ''),
+                'url': str(res['id']),
+                'author': self.color % res['author_name'][0].replace('<em class=\"keyword\">', '').replace('</em>', ''),
+                'source': self.color % self.name,
+                'path': '%s/%s' % (self.name,
+                                   str(res['title']).replace('<em class=\"keyword\">', '').replace('</em>', ''))
+            } for res in result]
+        except Exception as e:
+            print('请求错误，%s，%s' % (response.url, e))
 
     def get_branch(self):
         pass
@@ -83,7 +89,7 @@ class bilibili(MangaParser):
                 'title': title,
                 'episode': ep_title,
                 'jpg_url_list': [{'url': res, 'page': index} for index, res in enumerate(result, 1)],
-                'source': self.source,
+                'source': self.name,
                 'headers': self.headers
             }
 
@@ -116,18 +122,18 @@ class bilibili(MangaParser):
         return bytes(indexData)
 
     def run(self, comic_id):
-        cookie = enter_cookie()
         title, ep_list = self.get_episodes(comic_id)
         enter = enter_range(ep_list)
         executor = ThreadPoolExecutor(max_workers=20)
-        all_task = [executor.submit(self.get_jpg_list, comic_id, ep, cookie, title) for ep in
+        all_task = [executor.submit(self.get_jpg_list, comic_id, ep, self.cookie, title) for ep in
                     ep_list[enter[0]:enter[1]]]
         wait(all_task, return_when=ALL_COMPLETED)
         result = [task.result() for task in all_task]
         failure_list = []
         for res in result:
             if res is not None:
-                failures = image_download(res)
+                tor = bool(int(self.config.download['tor']))
+                failures = image_download(res, semaphore=int(self.config['semaphore']), tor=self.tor)
                 if failures is not None:
                     failure_list.append(failures)
         return failure_list

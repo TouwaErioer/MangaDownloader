@@ -10,48 +10,57 @@ from MangaParser import MangaParser
 from utils import get_html
 from fake_useragent import UserAgent
 from bs4 import BeautifulSoup
-from common import enter_range, green_text
+from common import enter_range
 from concurrent.futures import (ALL_COMPLETED, ThreadPoolExecutor, wait)
 from utils import image_download
 
 
 class wuqimh(MangaParser):
-    source = '57漫画'
 
     def __init__(self, config):
-        self.host = 'www.wuqimh.com'
-        self.color = green_text
-        self.config = config
-
-    def search(self, keywords, isRecursion=False):
-        headers = {
-            'Host': 'www.wuqimh.com',
-            'Referer': 'www.wuqimh.com',
+        self.config = config.wuqimh
+        self.site = self.config['site']
+        self.name = self.config['name']
+        self.host = self.config['host']
+        self.color = '\33[1;32m%s\033[0m'
+        self.image_site = self.config['image-site']
+        self.search_url = self.config['search-url']
+        self.tor = bool(int(self.config.download['tor']))
+        self.headers = {
+            'Host': self.host,
+            'Referer': self.host,
             'User-Agent': UserAgent().random
         }
-        html = get_html('http://www.wuqimh.com/search/q_' + keywords, headers)
-        soup = BeautifulSoup(html.content, 'lxml')
-        page_count = len(soup.select('.pager-cont a'))
-        books = soup.select('.book-detail')
-        result = []
-        for book in books:
-            a = book.select('dt a')[0]
-            author = book.select('.tags')[2].select('a')[0].get_text()
-            result.append({
-                'title': self.color % a.get('title'),
-                'url': 'http://' + self.host + a.get('href'),
-                'author': self.color % author,
-                'source': self.color % self.source
-            })
-        # 页数大于1，线程池获取第二页以后的数据
-        if page_count > 1 and isRecursion is not True:
-            executor = ThreadPoolExecutor(max_workers=5)
-            all_task = [executor.submit(self.search, keywords + '-p-' + str(page), isRecursion=True) for page in
-                        range(2, page_count + 1)]
-            wait(all_task, return_when=ALL_COMPLETED)
-            for task in all_task:
-                result.extend(task.result())
-        return result
+
+    def search(self, keywords, isRecursion=False):
+        try:
+            url = self.search_url % keywords
+            html = get_html(url, self.headers, tor=self.tor)
+            soup = BeautifulSoup(html.content, 'lxml')
+            page_count = len(soup.select('.pager-cont a'))
+            books = soup.select('.book-detail')
+            result = []
+            for book in books:
+                a = book.select('dt a')[0]
+                author = book.select('.tags')[2].select('a')[0].get_text()
+                result.append({
+                    'title': self.color % a.get('title'),
+                    'url': 'http://' + self.host + a.get('href'),
+                    'author': self.color % author,
+                    'source': self.color % self.name,
+                    'path': '%s/%s' % (self.name, a.get('title'))
+                })
+            # 页数大于1，线程池获取第二页以后的数据
+            if page_count > 1 and isRecursion is not True:
+                executor = ThreadPoolExecutor(max_workers=5)
+                all_task = [executor.submit(self.search, keywords + '-p-' + str(page), isRecursion=True) for page in
+                            range(2, page_count + 1)]
+                wait(all_task, return_when=ALL_COMPLETED)
+                for task in all_task:
+                    result.extend(task.result())
+            return result
+        except Exception as e:
+            print('请求错误，%s，%s' % (url, e))
 
     def get_branch(self):
         pass
@@ -76,23 +85,19 @@ class wuqimh(MangaParser):
         js = re.findall('eval(.*?)\\n', html.text)[0]
         jpg_list = self.get_jpg_list(js)
         episode = re.findall('<h2>(.*?)</h2>', html.text)[0]
-        headers['Referer'] = 'http://www.wuqimh.com/'
+        headers['Referer'] = 'http://%s' % self.host
         headers.pop('Host')
         task = {'title': title,
                 'episode': episode,
-                'jpg_url_list': [{'url': 'http://images.720rs.com' + jpg, 'page': index} for index, jpg in
+                'jpg_url_list': [{'url': self.image_site + jpg, 'page': index} for index, jpg in
                                  enumerate(jpg_list, 1)],
-                'source': '57漫画',
+                'source': self.name,
                 'headers': headers
                 }
         return task
 
     def run(self, url):
-        headers = {
-            'User-Agent': UserAgent().random
-        }
-        host = 'http://www.wuqimh.com'
-        html = get_html(url, headers)
+        html = get_html(url, self.headers)
         soup = BeautifulSoup(html.content, 'lxml')
         title = soup.select('h1')[0].get_text()
 
@@ -103,12 +108,13 @@ class wuqimh(MangaParser):
         enter = enter_range(episodes)
 
         executor = ThreadPoolExecutor(max_workers=20)
-        all_task = [executor.submit(self.works, host + link, title) for link in episodes[enter[0]:enter[1]]]
+        all_task = [executor.submit(self.works, self.site + link, title) for link in episodes[enter[0]:enter[1]]]
         wait(all_task, return_when=ALL_COMPLETED)
 
         failure_list = []
         for work in all_task:
-            result = image_download(work.result(), self.config.semaphore)
+            tor = bool(int(self.config.download['tor']))
+            result = image_download(work.result(), semaphore=int(self.config['semaphore']), tor=tor)
             if result is not None:
                 failure_list.append(result)
 
