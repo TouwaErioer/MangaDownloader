@@ -33,4 +33,4 @@ def make_zip(source_dir, output_filename):
 
 
 if __name__ == '__main__':
-    print(fake_useragent.UserAgent().firefox)
+    print(len(os.listdir('D:\mangadownloader\新建文件夹')))

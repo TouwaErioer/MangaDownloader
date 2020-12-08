@@ -6,16 +6,14 @@
 import js2py
 import re
 
-from MangaParser import MangaParser
+from parser import MangaParser
 from utils import get_html
 from fake_useragent import UserAgent
 from bs4 import BeautifulSoup
-from common import enter_range
 from concurrent.futures import (ALL_COMPLETED, ThreadPoolExecutor, wait)
-from utils import image_download
 
 
-class wuqimh(MangaParser):
+class WuQiMh(MangaParser):
 
     def __init__(self, config):
         self.tor = bool(int(config.download['tor']))
@@ -32,7 +30,7 @@ class wuqimh(MangaParser):
             'User-Agent': UserAgent().random
         }
 
-    def search(self, keywords, isRecursion=False):
+    def search(self, keywords, is_recursion=False):
         try:
             url = self.search_url % keywords
             html = get_html(url, self.headers, tor=self.tor)
@@ -44,16 +42,17 @@ class wuqimh(MangaParser):
                 a = book.select('dt a')[0]
                 author = book.select('.tags')[2].select('a')[0].get_text()
                 result.append({
-                    'title': self.color % a.get('title'),
+                    'title': a.get('title'),
                     'url': 'http://' + self.host + a.get('href'),
-                    'author': self.color % author,
-                    'source': self.color % self.name,
-                    'path': '%s/%s' % (self.name, a.get('title'))
+                    'author': author,
+                    'name': self.name,
+                    'color': self.color,
+                    'object': self
                 })
             # 页数大于1，线程池获取第二页以后的数据
-            if page_count > 1 and isRecursion is not True:
+            if page_count > 1 and is_recursion is not True:
                 executor = ThreadPoolExecutor(max_workers=5)
-                all_task = [executor.submit(self.search, keywords + '-p-' + str(page), isRecursion=True) for page in
+                all_task = [executor.submit(self.search, keywords + '-p-' + str(page), is_recursion=True) for page in
                             range(2, page_count + 1)]
                 wait(all_task, return_when=ALL_COMPLETED)
                 for task in all_task:
@@ -62,18 +61,26 @@ class wuqimh(MangaParser):
         except Exception as e:
             print('请求错误，%s，%s' % (url, e))
 
-    def get_branch(self):
-        pass
+    def get_soup(self, url):
+        html = get_html(url, self.headers)
+        return BeautifulSoup(html.content, 'lxml')
 
-    # python运行js获取图片列表
-    def get_jpg_list(self, js):
-        code = js2py.eval_js(js)
-        return str(re.findall("'fs':\\s*(\\[.*?\\])", code)[0])[1:-1].replace("'", '').split(',')
+    @staticmethod
+    def get_title(soup):
+        return soup.select('h1')[0].get_text()
 
-    def get_episodes(self, soup):
+    def get_branch(self, soup):
+        return None
+
+    def get_episodes(self, soup, branch, value):
         pages = soup.select('#chpater-list-1 a')
         episodes = list(reversed([page.get('href') for page in pages]))
         return episodes
+
+    def get_jpg_list(self, js):
+        # js2py运行js获取图片列表
+        code = js2py.eval_js(js)
+        return str(re.findall("'fs':\\s*(\\[.*?\\])", code)[0])[1:-1].replace("'", '').split(',')
 
     def works(self, link, title):
         headers = {
@@ -96,27 +103,5 @@ class wuqimh(MangaParser):
                 }
         return task
 
-    def run(self, url):
-        html = get_html(url, self.headers)
-        soup = BeautifulSoup(html.content, 'lxml')
-        title = soup.select('h1')[0].get_text()
-
-        # 获取全部话数
-        episodes = self.get_episodes(soup)
-
-        # 输入范围
-        enter = enter_range(episodes)
-
-        executor = ThreadPoolExecutor(max_workers=20)
-        all_task = [executor.submit(self.works, self.site + link, title) for link in episodes[enter[0]:enter[1]]]
-        wait(all_task, return_when=ALL_COMPLETED)
-
-        failure_list = []
-        not_exist_task = []
-        for work in all_task:
-            result = image_download(work.result(), semaphore=int(self.config['semaphore']), tor=self.tor)
-            if type(result) is tuple:
-                failure_list.append(result[0])
-            elif type(result) is str:
-                not_exist_task.append(result)
-        return failure_list, not_exist_task
+    def get_episodes_url(self, url):
+        return self.site + url

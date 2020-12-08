@@ -16,9 +16,7 @@ from retrying import retry
 import configparser
 
 
-# 请求
-
-
+# 封装get请求
 @retry(stop_max_attempt_number=2, wait_fixed=1000)
 def get_html(url, headers, tor=False):
     proxies = None
@@ -60,7 +58,8 @@ async def work(task: dict, semaphore, tor=False):
         return task
 
 
-def image_download(task: dict, semaphore=5, tor=False):
+# 图片异步下载
+def download(task: dict, semaphore=5, tor=False):
     # 参数检查
     if 'title' in task is False and 'episode' in task is False and 'jpg_url_list' in task is False and 'source' in task:
         assert ValueError
@@ -74,25 +73,38 @@ def image_download(task: dict, semaphore=5, tor=False):
     loop = asyncio.get_event_loop()
     all_task = []
     semaphore = asyncio.Semaphore(semaphore)
-    for jpg_url in jpg_url_list:
-        if not os.path.exists('%s%s/%s/%s' % (folder, source, title, episode)):
-            # 递归创建文件夹
-            os.makedirs('%s%s/%s/%s' % (folder, source, title, episode))
-        path = '%s%s/%s/%s/%s' % (folder, source, title, episode, str(jpg_url['page']) + '.jpg')
 
-        if not os.path.exists(path):
-            all_task.append(
-                asyncio.ensure_future(
-                    work({'url': jpg_url['url'], 'path': path, 'headers': headers}, semaphore, tor=tor)))
+    for jpg_url in jpg_url_list:
+        # 如果没找到文件夹，递归创建文件夹
+        if not os.path.exists('%s%s/%s/%s' % (folder, source, title, episode)):
+            os.makedirs('%s%s/%s/%s' % (folder, source, title, episode))
+
+        image_path = '%s%s/%s/%s/%s' % (folder, source, title, episode, str(jpg_url['page']) + '.jpg')
+
+        if not os.path.exists(image_path):
+            task = {'url': jpg_url['url'], 'path': image_path, 'headers': headers}
+            all_task.append(asyncio.ensure_future(work(task, semaphore, tor=tor)))
+
     if len(all_task) > 0:
+        # 进度条
         with tqdm(total=len(all_task), desc='%s' % episode) as bar:
-            for t in all_task:
-                t.add_done_callback(lambda _: bar.update(1))
+            for task in all_task:
+                task.add_done_callback(lambda _: bar.update(1))
             loop.run_until_complete(asyncio.wait(all_task))
+
+    # 失败任务表示连接错误的任务
+    # 资源不存在任务代表相应404的任务
+    # works返回dict或str，返回dict表示失败任务,返回str代表资源不存在任务
+
+    # 失败任务列表
     failure_list = [task.result() for task in all_task if task.result() is dict]
-    # 如果第一个任务不存在，这话不存在
+
+    # 如果第一个任务不存在，判断这话不存在
     not_exist_result = all_task[0].result()
+
+    # 资源不存在列表
     not_exist_task = str(not_exist_result) if not_exist_result is not None else None
+
     if len(failure_list) != 0:
         # 有失败任务，代表没有不存在任务
         return failure_list
@@ -125,7 +137,7 @@ def repeat(failures, count):
                     {'url': failure_task['url'], 'page': str(failure_task['path']).split('/')[-1].split('.')[0]})
                 tasks.append(res)
             for task in tasks:
-                failures = image_download(task)
+                failures = download(task)
         if failures is not None:
             repeat(failures, count - 1)
     else:

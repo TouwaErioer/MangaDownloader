@@ -3,19 +3,16 @@
 # @Time    : 2020/11/29 11:20
 # @Author  : DHY
 # @File    : manhuadb.py
+
 import re
 from bs4 import BeautifulSoup
 import base64
 import json
-from utils import image_download, get_html
-from common import enter_range, enter_branch
-from concurrent.futures import (ALL_COMPLETED, ThreadPoolExecutor, wait)
-from MangaParser import MangaParser
-
-from fake_useragent import UserAgent
+from utils import get_html
+from parser import MangaParser
 
 
-class manhuadb(MangaParser):
+class ManhuaDB(MangaParser):
 
     def __init__(self, config):
         self.tor = bool(int(config.download['tor']))
@@ -30,7 +27,6 @@ class manhuadb(MangaParser):
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; rv:63.0) Gecko/20100101 Firefox/63.0',
         }
 
-    # 搜索
     def search(self, keywords: str):
         try:
             url = self.search_url % keywords
@@ -42,25 +38,36 @@ class manhuadb(MangaParser):
                 item = result.select('a')[0]
                 author = result.select('.comic-author a')[0].get('title')
                 result_list.append(
-                    {'title': self.color % item.get('title'), 'url': self.site + item.get('href'),
-                     'author': self.color % author,
-                     'source': self.color % self.name,
-                     'path': '%s/%s' % (self.name, item.get('title'))
+                    {'title': item.get('title'),
+                     'url': self.site + item.get('href'),
+                     'author': author,
+                     'name': self.name,
+                     'color': self.color,
+                     'object': self
                      },
                 )
             return result_list
         except Exception as e:
             print('请求错误，%s，%s' % (url, e))
 
-    # 获取分支
+    def get_soup(self, url):
+        html = get_html(url, self.headers)
+        return BeautifulSoup(html.content, 'lxml')
+
+    @staticmethod
+    def get_title(soup):
+        return soup.select('.comic-title')[0].get_text()
+
     def get_branch(self, soup):
         tabs = soup.select('#myTab .nav-link')
-        tab = {}
-        for item in tabs:
-            tab[item.get_text()] = item.get('aria-controls')
-        return tab
+        if len(tabs) != 0:
+            tab = {}
+            for item in tabs:
+                tab[item.get_text()] = item.get('aria-controls')
+            return tab
+        else:
+            raise Exception('已下架')
 
-    # 获取全部话
     def get_episodes(self, soup, branch, value):
         url_list = []
         sort_div = soup.select('.sort_div')
@@ -95,36 +102,5 @@ class manhuadb(MangaParser):
             task['headers']['Host'] = task['jpg_url_list'][0]['url'].split('/')[2]
         return task
 
-    def run(self, url):
-        # url = input('请输入你要批量下载漫画的网址：')[:-1] or 'https://www.manhuadb.com/manhua/1488'
-        html = get_html(url, self.headers)
-        soup = BeautifulSoup(html.content, 'lxml')
-        title = soup.select('.comic-title')[0].get_text()
-
-        # 分支
-        branch = self.get_branch(soup)
-
-        # 输入分支
-        value = enter_branch(branch)
-
-        # 全部的话数
-        episodes = self.get_episodes(soup, branch, value)
-
-        # 输入范围
-        enter = enter_range(episodes)
-
-        # 解析图片链接，线程池
-        executor = ThreadPoolExecutor(max_workers=20)
-        for link in episodes[enter[0]:enter[1]]:
-            print(self.site + link)
-        all_task = [executor.submit(self.works, self.site + link, title) for link in episodes[enter[0]:enter[1]]]
-        wait(all_task, return_when=ALL_COMPLETED)
-        failure_list = []
-        not_exist_task = []
-        for work in all_task:
-            result = image_download(work.result(), semaphore=int(self.config['semaphore']), tor=self.tor)
-            if type(result) is tuple:
-                failure_list.append(result[0])
-            elif type(result) is str:
-                not_exist_task.append(result)
-        return failure_list, not_exist_task
+    def get_episodes_url(self, url):
+        return self.site + url
