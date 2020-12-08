@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # @Time    : 2020/12/3 12:35
 # @Author  : DHY
-# @File    : parser.py
+# @File    : MangaParser.py
 import time
 from abc import ABCMeta, abstractmethod
 from common import enter_branch, enter_range

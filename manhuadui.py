@@ -3,7 +3,7 @@
 # @Time    : 2020/12/1 10:05
 # @Author  : DHY
 # @File    : manhuadui.py
-from parser import MangaParser
+from MangaParser import MangaParser
 from utils import get_html, aes_decrypt
 import re
 from bs4 import BeautifulSoup

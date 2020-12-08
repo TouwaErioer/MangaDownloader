@@ -8,7 +8,7 @@ from fake_useragent import UserAgent
 import io
 import json
 import zipfile
-from parser import MangaParser
+from MangaParser import MangaParser
 from common import enter_cookie
 
 

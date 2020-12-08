@@ -6,7 +6,7 @@
 import js2py
 import re
 
-from parser import MangaParser
+from MangaParser import MangaParser
 from utils import get_html
 from fake_useragent import UserAgent
 from bs4 import BeautifulSoup

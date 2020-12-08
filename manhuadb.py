@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup
 import base64
 import json
 from utils import get_html
-from parser import MangaParser
+from MangaParser import MangaParser
 
 
 class ManhuaDB(MangaParser):

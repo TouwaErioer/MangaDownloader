@@ -4,7 +4,7 @@
 # @Author  : DHY
 # @File    : run.py
 from prettytable import PrettyTable
-from parser import MangaParser
+from MangaParser import MangaParser
 from bilibili import BiliBili
 from common import red_text, enter_keywords, enter_index, blue_text, green_text
 from concurrent.futures import (ALL_COMPLETED, ThreadPoolExecutor, wait)
