@@ -28,6 +28,8 @@ def enter_range(pages: list):
                 end = int(input_arr[1])
                 if end > len(pages) or end <= 0 and start > len(pages) or end < 0:
                     raise IndexError
+                else:
+                    return start, end
             elif end == 'help' or end == 'h':
                 print_help('range')
             else:

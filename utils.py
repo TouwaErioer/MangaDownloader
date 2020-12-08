@@ -14,11 +14,11 @@ import base64
 from fake_useragent import UserAgent
 from retrying import retry
 import configparser
-from stem.control import Controller
-from stem import Signal
 
 
 # 请求
+
+
 @retry(stop_max_attempt_number=2, wait_fixed=1000)
 def get_html(url, headers, tor=False):
     proxies = None
@@ -47,14 +47,20 @@ async def work(task: dict, semaphore, tor=False):
             async with aiohttp.ClientSession() as session:
                 session.proxies = proxies
                 response = await session.get(task['url'], headers=headers, timeout=5)
-                content = await response.read()
-                with open(task['path'], 'wb') as f:
-                    f.write(content)
+                if response.status != 404:
+                    content = await response.read()
+                    with open(task['path'], 'wb') as f:
+                        f.write(content)
+                else:
+                    # 资源不存在
+                    episode = str(task['path']).split('/')[-2]
+                    return str('\33[1;32m%s\033[0m' % ('%s 资源不存在' % episode))
     except Exception:
+        # 连接异常，失败任务
         return task
 
 
-def image_download(task: dict, semaphore=5):
+def image_download(task: dict, semaphore=5, tor=False):
     # 参数检查
     if 'title' in task is False and 'episode' in task is False and 'jpg_url_list' in task is False and 'source' in task:
         assert ValueError
@@ -76,16 +82,22 @@ def image_download(task: dict, semaphore=5):
 
         if not os.path.exists(path):
             all_task.append(
-                asyncio.ensure_future(work({'url': jpg_url['url'], 'path': path, 'headers': headers}, semaphore)))
+                asyncio.ensure_future(
+                    work({'url': jpg_url['url'], 'path': path, 'headers': headers}, semaphore, tor=tor)))
     if len(all_task) > 0:
         with tqdm(total=len(all_task), desc='%s' % episode) as bar:
             for t in all_task:
                 t.add_done_callback(lambda _: bar.update(1))
             loop.run_until_complete(asyncio.wait(all_task))
-    failure_list = [task.result() for task in all_task if task.result() is not None]
-
+    failure_list = [task.result() for task in all_task if task.result() is dict]
+    # 如果第一个任务不存在，这话不存在
+    not_exist_result = all_task[0].result()
+    not_exist_task = str(not_exist_result) if not_exist_result is not None else None
     if len(failure_list) != 0:
+        # 有失败任务，代表没有不存在任务
         return failure_list
+    if not_exist_task is not None:
+        return not_exist_task
 
 
 def aes_decrypt(key, iv, content):
@@ -117,6 +129,7 @@ def repeat(failures, count):
         if failures is not None:
             repeat(failures, count - 1)
     else:
+        print('下载完成')
         if len(failures) != 0:
             for failure in failures:
                 print('%s下载失败，%s' % (str(failure['path']).split('/')[1], failure['url']))
@@ -148,19 +161,9 @@ def write_config(section, item, value):
 def make_zip(source_dir, output_filename):
     file = zipfile.ZipFile(output_filename, 'w')
     pre_len = len(os.path.dirname(source_dir))
-    for parent, dir_name, filenames in tqdm(os.walk(source_dir), total=pre_len, desc='压缩中'):
+    for parent, dir_name, filenames in os.walk(source_dir):
         for filename in filenames:
             path_file = os.path.join(parent, filename)
             arc_name = path_file[pre_len:].strip(os.path.sep)  # 相对路径
             file.write(path_file, arc_name)
     file.close()
-
-
-def switch_ip():
-    with Controller.from_port(port=9051) as controller:
-        controller.authenticate()
-        controller.signal(Signal.NEWNYM)
-
-
-if __name__ == '__main__':
-    switch_ip()

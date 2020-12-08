@@ -89,26 +89,37 @@ if __name__ == '__main__':
         print(table)
         # 输入序号
         value = enter_index(len(results))
-        url = str(results[value - 1]['url'])
-        obj = results[value - 1]['obj']
+        selected_result = results[value - 1]
+        url = str(selected_result['url'])
+        obj = selected_result['obj']
 
         failure_list = []
+        not_exist_tasks = []
         if isinstance(obj, MangaParser):
-            failure_list = obj.run(url)
+            try:
+                # 运行
+                failure_list, not_exist_tasks = obj.run(url)
+                # 重试
+                repeat(failure_list, int(config.download['repeat']))
 
-        repeat(failure_list, int(config.download['repeat']))
-        print('下载完成')
-        if int(config.download['remote']):
-            source_dir = str(results[value - 1]['path'])
-            array = source_dir.split('/')
-            title = array[1]
-            name = array[0]
-            path = config.folder['path']
-            source_dir = path + source_dir
-            zip_name = '%s[%s]%s.zip' % (path, name, title)
-            make_zip(source_dir, zip_name)
-            # 删除文件夹
-            shutil.rmtree(source_dir)
+                # 资源不存在
+                if len(not_exist_tasks) != 0:
+                    print('\n')
+                    for not_exist_task in not_exist_tasks:
+                        print(not_exist_task)
 
-    else:
-        print('没有查询到结果')
+                if int(config.download['remote']):
+                    source_dir = str(selected_result['path'])
+                    array = source_dir.split('/')
+                    title = array[1]
+                    name = array[0]
+                    path = config.folder['path']
+                    source_dir = path + source_dir
+                    zip_name = '%s%s/%s.zip' % (path, name, title)
+                    make_zip(source_dir, zip_name)
+                    # 删除文件夹
+                    shutil.rmtree(source_dir)
+            except Exception as e:
+                print(e)
+else:
+    print('没有查询到结果')

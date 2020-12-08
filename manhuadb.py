@@ -7,7 +7,7 @@ import re
 from bs4 import BeautifulSoup
 import base64
 import json
-from utils import image_download, get_html, switch_ip
+from utils import image_download, get_html
 from common import enter_range, enter_branch
 from concurrent.futures import (ALL_COMPLETED, ThreadPoolExecutor, wait)
 from MangaParser import MangaParser
@@ -18,13 +18,13 @@ from fake_useragent import UserAgent
 class manhuadb(MangaParser):
 
     def __init__(self, config):
+        self.tor = bool(int(config.download['tor']))
         self.config = config.manhuadb
         self.site = self.config['site']
         self.host = self.config['host']
         self.name = self.config['name']
         self.color = '\33[1;33m%s\033[0m'
         self.search_url = self.config['search-url']
-        self.tor = bool(int(self.config.download['tor']))
         self.headers = {
             'Host': self.host,
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; rv:63.0) Gecko/20100101 Firefox/63.0',
@@ -115,11 +115,16 @@ class manhuadb(MangaParser):
 
         # 解析图片链接，线程池
         executor = ThreadPoolExecutor(max_workers=20)
+        for link in episodes[enter[0]:enter[1]]:
+            print(self.site + link)
         all_task = [executor.submit(self.works, self.site + link, title) for link in episodes[enter[0]:enter[1]]]
         wait(all_task, return_when=ALL_COMPLETED)
         failure_list = []
+        not_exist_task = []
         for work in all_task:
             result = image_download(work.result(), semaphore=int(self.config['semaphore']), tor=self.tor)
-            if result is not None:
-                failure_list.append(result)
-        return failure_list
+            if type(result) is tuple:
+                failure_list.append(result[0])
+            elif type(result) is str:
+                not_exist_task.append(result)
+        return failure_list, not_exist_task

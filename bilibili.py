@@ -18,6 +18,7 @@ from utils import image_download
 class bilibili(MangaParser):
 
     def __init__(self, config):
+        self.tor = bool(int(config.download['tor']))
         self.config = config.bilibili
         self.color = '\33[1;35m%s\033[0m'
         self.name = self.config['name']
@@ -27,7 +28,6 @@ class bilibili(MangaParser):
         self.ImageToken = self.config['image-token-api']
         self.host = self.config['host']
         self.cookie = enter_cookie(self.config)
-        self.tor = bool(int(self.config.download['tor']))
         self.headers = {
             'origin': self.host,
             'User-Agent': UserAgent().random
@@ -77,7 +77,7 @@ class bilibili(MangaParser):
             response = requests.get('https://i0.hdslb.com' + result['data'], headers=self.headers)
             index_data = list(response.content)[9:]
             hash_key = self.generateHashKey(comic_id, ep_id)
-            index_data = self.unhashContent(hash_key, index_data)
+            index_data = self.un_hash_content(hash_key, index_data)
 
             file = io.BytesIO(index_data)
             obj = zipfile.ZipFile(file)
@@ -116,7 +116,7 @@ class bilibili(MangaParser):
         return n
 
     @staticmethod
-    def unhashContent(hashKey, indexData):
+    def un_hash_content(hashKey, indexData):
         for idx in range(len(indexData)):
             indexData[idx] ^= hashKey[idx % 8]
         return bytes(indexData)
@@ -128,16 +128,12 @@ class bilibili(MangaParser):
         all_task = [executor.submit(self.get_jpg_list, comic_id, ep, self.cookie, title) for ep in
                     ep_list[enter[0]:enter[1]]]
         wait(all_task, return_when=ALL_COMPLETED)
-        result = [task.result() for task in all_task]
         failure_list = []
-        for res in result:
-            if res is not None:
-                tor = bool(int(self.config.download['tor']))
-                failures = image_download(res, semaphore=int(self.config['semaphore']), tor=self.tor)
-                if failures is not None:
-                    failure_list.append(failures)
-        return failure_list
-
-
-if __name__ == '__main__':
-    print(bilibili())
+        not_exist_task = []
+        for work in all_task:
+            result = image_download(work.result(), semaphore=int(self.config['semaphore']), tor=self.tor)
+            if type(result) is tuple:
+                failure_list.append(result[0])
+            elif type(result) is str:
+                not_exist_task.append(result)
+        return failure_list, not_exist_task

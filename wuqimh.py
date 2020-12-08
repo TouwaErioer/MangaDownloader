@@ -18,6 +18,7 @@ from utils import image_download
 class wuqimh(MangaParser):
 
     def __init__(self, config):
+        self.tor = bool(int(config.download['tor']))
         self.config = config.wuqimh
         self.site = self.config['site']
         self.name = self.config['name']
@@ -25,7 +26,6 @@ class wuqimh(MangaParser):
         self.color = '\33[1;32m%s\033[0m'
         self.image_site = self.config['image-site']
         self.search_url = self.config['search-url']
-        self.tor = bool(int(self.config.download['tor']))
         self.headers = {
             'Host': self.host,
             'Referer': self.host,
@@ -112,14 +112,11 @@ class wuqimh(MangaParser):
         wait(all_task, return_when=ALL_COMPLETED)
 
         failure_list = []
+        not_exist_task = []
         for work in all_task:
-            tor = bool(int(self.config.download['tor']))
-            result = image_download(work.result(), semaphore=int(self.config['semaphore']), tor=tor)
-            if result is not None:
-                failure_list.append(result)
-
-        return failure_list
-
-
-if __name__ == '__main__':
-    print(wuqimh())
+            result = image_download(work.result(), semaphore=int(self.config['semaphore']), tor=self.tor)
+            if type(result) is tuple:
+                failure_list.append(result[0])
+            elif type(result) is str:
+                not_exist_task.append(result)
+        return failure_list, not_exist_task

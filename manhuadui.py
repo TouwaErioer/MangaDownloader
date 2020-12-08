@@ -16,13 +16,13 @@ from fake_useragent import UserAgent
 class manhuadui(MangaParser):
 
     def __init__(self, config):
+        self.tor = bool(int(config.download['tor']))
         self.config = config.manhuadui
         self.site = self.config['site']
         self.name = self.config['name']
         self.color = '\33[1;34m%s\033[0m'
         self.image_site = self.config['image-site']
         self.search_url = self.config['search-url']
-        self.tor = bool(int(self.config.download['tor']))
         self.headers = {
             'User-Agent': UserAgent().random
         }
@@ -126,13 +126,11 @@ class manhuadui(MangaParser):
         wait(all_task, return_when=ALL_COMPLETED)
 
         failure_list = []
+        not_exist_task = []
         for work in all_task:
             result = image_download(work.result(), semaphore=int(self.config['semaphore']), tor=self.tor)
-            if result is not None:
-                failure_list.append(result)
-
-        return failure_list
-
-
-if __name__ == '__main__':
-    print(manhuadui())
+            if type(result) is tuple:
+                failure_list.append(result[0])
+            elif type(result) is str:
+                not_exist_task.append(result)
+        return failure_list, not_exist_task
