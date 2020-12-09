@@ -89,12 +89,9 @@ class MangaParser(metaclass=ABCMeta):
         not_exist_task = []
         start = time.time()
         for work in all_task:
-            try:
-                result = download(work.result(), semaphore=int(self.config['semaphore']), tor=self.tor)
-            except Exception as e:
-                print(e)
-            if type(result) is tuple:
-                failure_list.append(result[0])
+            result = download(work.result(), semaphore=int(self.config['semaphore']), tor=self.tor)
+            if type(result) is list:
+                failure_list.append(result)
             elif type(result) is str:
                 not_exist_task.append(result)
         time_consuming = float(time.time() - start)

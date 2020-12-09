@@ -81,19 +81,23 @@ class ManhuaDB(MangaParser):
         return json.loads(str(base64.b64decode(re.findall("img_data = '(.*?)'", html)[0]).decode('utf-8')))
 
     def works(self, url, title):
-        html = get_html(url, self.headers).text
+        response = get_html(url, self.headers)
+        html = response.text
         result = self.get_jpg_list(html)
         jpg_url = re.findall(r'<img class="img-fluid show-pic" src="(.*?)" />', html)[0]
         suffix = jpg_url.split('/')[-1]
         prefix = jpg_url.replace(suffix, '')
         episode = re.findall('<h2 class="h4 text-center">(.*?)</h2>', html)[0]
-        self.headers['Host'] = self.config['image-host']
+        header = {
+            'Host': self.config['image-host'],
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; rv:63.0) Gecko/20100101 Firefox/63.0',
+        }
         task = {
             'title': title,
             'episode': episode,
             'jpg_url_list': [],
             'source': self.name,
-            'headers': self.headers
+            'headers': header
         }
         for res in result:
             task['jpg_url_list'].append({'url': prefix + res['img'], 'page': res['p']})

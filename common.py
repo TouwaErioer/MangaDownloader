@@ -46,8 +46,10 @@ def enter_range(pages: list):
 
 
 def enter_branch(tab: dict):
+    if tab is None or len(tab) == 0:
+        return 0
     # 分支大于1，选择分支
-    if len(tab) > 1:
+    elif len(tab) > 1:
         table = PrettyTable(['序号', '分支'])
         for index, value in enumerate(list(tab.keys()), 1):
             table.add_row([index, value])
@@ -69,8 +71,6 @@ def enter_branch(tab: dict):
                 print('\033[0;31;40m输入不为数字\033[0m')
             except IndexError:
                 print('\033[0;31;40m超出分支范围\033[0m')
-    else:
-        return 0
 
 
 def enter_command():

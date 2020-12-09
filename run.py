@@ -58,7 +58,9 @@ if __name__ == '__main__':
 
     results = []
     for task in all_task:
-        results.extend(task.result())
+        result = task.result()
+        if result is not None:
+            results.extend(task.result())
 
     # 筛选author
     if author is not None:
@@ -99,38 +101,34 @@ if __name__ == '__main__':
         not_exist_tasks = []
 
         if isinstance(parser, MangaParser):
-            try:
-                # 运行
-                failure_list, not_exist_tasks, time_consuming = parser.run(url)
+            # 运行
+            failure_list, not_exist_tasks, time_consuming = parser.run(url)
+            # 重试
+            repeat(failure_list)
 
-                # 重试
-                repeat(failure_list, int(config.download['repeat']))
+            if len(not_exist_tasks) != 0:
+                for not_exist_task in not_exist_tasks:
+                    print(not_exist_task)
 
-                if len(not_exist_tasks) != 0:
-                    for not_exist_task in not_exist_tasks:
-                        print(not_exist_task)
+            title = selected_result['title']
+            name = selected_result['name']
+            path = config.folder['path']
+            source_dir = '%s%s/%s' % (path, name, title)
+            zip_name = '%s%s/%s.zip' % (path, name, title)
 
-                title = selected_result['title']
-                name = selected_result['name']
-                path = config.folder['path']
-                source_dir = '%s%s/%s' % (path, name, title)
-                zip_name = '%s%s/%s.zip' % (path, name, title)
+            # 查找目录下全部的文件
+            file_total = 0
+            for root, dirs, files in os.walk(source_dir):
+                for file in files:
+                    file_total += 1
 
-                # 查找目录下全部的文件
-                file_total = 0
-                for root, dirs, files in os.walk(source_dir):
-                    for file in files:
-                        file_total += 1
-
-                # 压缩
-                if int(config.download['remote']) and file_total != 0:
-                    make_zip(source_dir, zip_name)
-                    # 删除文件夹
-                    shutil.rmtree(source_dir)
-                file_total = blue_text % str(file_total)
-                time_consuming = green_text % str(time_consuming)
-                print('共下载文件%s个，耗时%s秒' % (file_total, time_consuming))
-            except Exception as e:
-                print(e)
-else:
-    print('没有查询到结果')
+            # 压缩
+            if int(config.download['remote']) and file_total != 0:
+                make_zip(source_dir, zip_name)
+                # 删除文件夹
+                shutil.rmtree(source_dir)
+            file_total = blue_text % str(file_total)
+            time_consuming = green_text % str(time_consuming)
+            print('共下载文件%s个，耗时%s秒' % (file_total, time_consuming))
+    else:
+        print('没有查询到结果')
