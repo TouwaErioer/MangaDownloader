@@ -19,6 +19,7 @@ import configparser
 # 封装get请求
 @retry(stop_max_attempt_number=2, wait_fixed=1000)
 def get_html(url, headers, tor=False):
+    print(url)
     proxies = None
     if tor:
         proxies = {'http': 'http://127.0.0.1:8118', 'https': 'http://127.0.0.1:8118'}
@@ -53,12 +54,12 @@ async def work(task: dict, semaphore, tor=False):
                     # 资源不存在
                     episode = str(task['path']).split('/')[-2]
                     return str('\33[1;32m%s\033[0m' % ('%s 资源不存在' % episode))
-    except Exception:
+    except Exception as e:
+        print(e)
         # 连接异常，失败任务
         return task
 
 
-# 图片异步下载
 def download(task: dict, semaphore=5, tor=False):
     # 参数检查
     if 'title' in task is False and 'episode' in task is False and 'jpg_url_list' in task is False and 'source' in task:
@@ -81,7 +82,7 @@ def download(task: dict, semaphore=5, tor=False):
         if not os.path.exists('%s%s/%s/%s' % (folder, source, title, episode)):
             os.makedirs('%s%s/%s/%s' % (folder, source, title, episode))
 
-        image_path = '%s%s/%s/%s/%s' % (folder, source, title, episode, str(jpg_url['page']) + suffix)
+        image_path = '%s%s/%s/%s/%s' % (folder, source, title, episode, str(jpg_url['page']) + '.jpg')
 
         if not os.path.exists(image_path):
             task = {'url': url, 'path': image_path, 'headers': headers}
@@ -106,7 +107,6 @@ def download(task: dict, semaphore=5, tor=False):
         not_exist_result = all_task[0].result()
         # 资源不存在列表
         not_exist_task = str(not_exist_result) if type(not_exist_result) is str else None
-
     if len(failure_list) != 0:
         # 有失败任务，代表没有不存在任务
         return failure_list
@@ -183,3 +183,30 @@ def make_zip(source_dir, output_filename):
             arc_name = path_file[pre_len:].strip(os.path.sep)  # 相对路径
             file.write(path_file, arc_name)
     file.close()
+
+
+# 异步get请求
+@retry(stop_max_attempt_number=5, wait_fixed=1000)
+async def get_detail(task, tor=False):
+    async with asyncio.Semaphore(500):
+        proxies = {'http': 'http://127.0.0.1:8118', 'https': 'http://127.0.0.1:8118'} if tor else None
+        url = task['url']
+        headers = task['headers']
+        async with aiohttp.ClientSession() as session:
+            session.proxies = proxies
+            response = await session.get(url, headers=headers, timeout=15)
+            assert response.status == 200
+            content = await response.read()
+            return content
+
+
+async def work_speed(task, tor=False):
+    try:
+        async with asyncio.Semaphore(500):
+            proxies = {'http': 'http://127.0.0.1:8118', 'https': 'http://127.0.0.1:8118'} if tor else None
+            async with aiohttp.ClientSession() as session:
+                session.proxies = proxies
+                response = await session.get(task['url'], headers=task['headers'], timeout=5)
+                await response.read()
+    except Exception:
+        pass

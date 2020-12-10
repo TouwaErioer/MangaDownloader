@@ -66,7 +66,7 @@ def enter_branch(tab: dict):
                 elif int(value) > len(tab.keys()) or int(value) <= 0:
                     raise IndexError
                 else:
-                    return int(value) - 1
+                    return tab.get(list(tab.keys())[int(value) - 1])
             except ValueError:
                 print('\033[0;31;40m输入不为数字\033[0m')
             except IndexError:

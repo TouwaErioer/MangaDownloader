@@ -7,6 +7,7 @@ import js2py
 import re
 
 from MangaParser import MangaParser
+from config import config
 from utils import get_html
 from fake_useragent import UserAgent
 from bs4 import BeautifulSoup
@@ -15,9 +16,9 @@ from concurrent.futures import (ALL_COMPLETED, ThreadPoolExecutor, wait)
 
 class WuQiMh(MangaParser):
 
-    def __init__(self, config):
-        self.tor = bool(int(config.download['tor']))
-        self.config = config.wuqimh
+    def __init__(self, Config):
+        self.tor = bool(int(Config.download['tor']))
+        self.config = Config.wuqimh
         self.site = self.config['site']
         self.name = self.config['name']
         self.host = self.config['host']
@@ -30,78 +31,81 @@ class WuQiMh(MangaParser):
             'User-Agent': UserAgent().random
         }
 
-    def search(self, keywords, is_recursion=False):
-        try:
-            url = self.search_url % keywords
-            html = get_html(url, self.headers, tor=self.tor)
-            soup = BeautifulSoup(html.content, 'lxml')
-            page_count = len(soup.select('.pager-cont a'))
-            books = soup.select('.book-detail')
-            result = []
-            for book in books:
-                a = book.select('dt a')[0]
-                author = book.select('.tags')[2].select('a')[0].get_text()
-                result.append({
-                    'title': a.get('title'),
-                    'url': 'http://' + self.host + a.get('href'),
-                    'author': author,
-                    'name': self.name,
-                    'color': self.color,
-                    'object': self
-                })
-            # 页数大于1，线程池获取第二页以后的数据
-            if page_count > 1 and is_recursion is not True:
-                executor = ThreadPoolExecutor(max_workers=5)
-                all_task = [executor.submit(self.search, keywords + '-p-' + str(page), is_recursion=True) for page in
-                            range(2, page_count + 1)]
-                wait(all_task, return_when=ALL_COMPLETED)
-                for task in all_task:
-                    result.extend(task.result())
-            return result
-        except Exception as e:
-            print('请求错误，%s，%s' % (url, e))
+    def search(self, keywords, is_recursion=False, detail=False):
+        url = self.search_url % keywords
+        html = get_html(url, self.headers, tor=self.tor)
+        soup = BeautifulSoup(html.content, 'lxml')
+        page_count = len(soup.select('.pager-cont a'))
+        books = soup.select('.book-detail')
+        results = []
+        for book in books:
+            a = book.select('dt a')[0]
+            author = book.select('.tags')[2].select('a')[0].get_text()
+            results.append({
+                'title': a.get('title'),
+                'url': 'http://' + self.host + a.get('href'),
+                'author': author,
+                'name': self.name,
+                'color': self.color,
+                'object': self
+            })
+        # 页数大于1，线程池获取第二页以后的数据
+        if page_count > 1 and is_recursion is not True:
+            executor = ThreadPoolExecutor(max_workers=5)
+            all_task = [executor.submit(self.search, keywords + '-p-' + str(page), is_recursion=True) for page in
+                        range(2, page_count + 1)]
+            wait(all_task, return_when=ALL_COMPLETED)
+            for task in all_task:
+                results.extend(task.result())
+        if detail:
+            soups = self.get_search_soups(results)
+
+            details = self.parser_detail(soups)
+
+            for result in results:
+                for detail in details:
+                    if result['title'] == detail['title']:
+                        result.update(detail)
+        return results
 
     def get_soup(self, url):
         html = get_html(url, self.headers)
-        return BeautifulSoup(html.content, 'lxml')
+        return BeautifulSoup(html.content, 'lxml'), html.elapsed.total_seconds()
 
     @staticmethod
     def get_title(soup):
         return soup.select('h1')[0].get_text()
 
     def get_branch(self, soup):
-        return None
+        return [1]
 
     def get_episodes(self, soup, branch, value):
         pages = soup.select('#chpater-list-1 a')
         episodes = list(reversed([page.get('href') for page in pages]))
+        episodes = [self.site + episode for episode in episodes]
         return episodes
 
-    def get_jpg_list(self, js):
+    def get_jpg_list(self, link):
+        html = get_html(link, self.headers)
+        js = re.findall('eval(.*?)\\n', html.text)[0]
+        episode = re.findall('<h2>(.*?)</h2>', html.text)[0]
         # js2py运行js获取图片列表
         code = js2py.eval_js(js)
-        return str(re.findall("'fs':\\s*(\\[.*?\\])", code)[0])[1:-1].replace("'", '').split(',')
+        jpg_list = str(re.findall("'fs':\\s*(\\[.*?\\])", code)[0])[1:-1].replace("'", '').split(',')
+        jpg_list = [self.image_site + jpg for jpg in jpg_list]
+        return jpg_list, episode
 
     def works(self, link, title):
-        headers = {
-            'Host': 'www.wuqimh.com',
-            'Referer': link,
-            'User-Agent': UserAgent().random
-        }
-        html = get_html(link, headers)
-        js = re.findall('eval(.*?)\\n', html.text)[0]
-        jpg_list = self.get_jpg_list(js)
-        episode = re.findall('<h2>(.*?)</h2>', html.text)[0]
-        headers['Referer'] = 'http://%s' % self.host
-        headers.pop('Host')
+        jpg_list, episode = self.get_jpg_list(link)
+        header = self.headers
+        header.pop('Host')
         task = {'title': title,
                 'episode': episode,
-                'jpg_url_list': [{'url': self.image_site + jpg, 'page': index} for index, jpg in
-                                 enumerate(jpg_list, 1)],
+                'jpg_url_list': [{'url': jpg, 'page': index} for index, jpg in enumerate(jpg_list, 1)],
                 'source': self.name,
-                'headers': headers
+                'headers': header
                 }
         return task
 
     def get_episodes_url(self, url):
-        return self.site + url
+        return url

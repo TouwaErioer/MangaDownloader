@@ -3,6 +3,8 @@
 # @Time    : 2020/12/4 14:07
 # @Author  : DHY
 # @File    : bilibili.py
+import asyncio
+import time
 import requests
 from fake_useragent import UserAgent
 import io
@@ -10,13 +12,14 @@ import json
 import zipfile
 from MangaParser import MangaParser
 from common import enter_cookie
+from utils import work_speed
 
 
 class BiliBili(MangaParser):
 
-    def __init__(self, config):
-        self.tor = bool(int(config.download['tor']))
-        self.config = config.bilibili
+    def __init__(self, Config):
+        self.tor = bool(int(Config.download['tor']))
+        self.config = Config.bilibili
         self.color = '\33[1;35m%s\033[0m'
         self.name = self.config['name']
         self.SEARCH_API = self.config['search-api']
@@ -30,40 +33,72 @@ class BiliBili(MangaParser):
             'User-Agent': UserAgent().random
         }
 
-    def search(self, keywords):
-        try:
-            self.headers['referer'] = 'https://manga.bilibili.com/search?from=manga_detail&keyword='
-            response = requests.post(self.SEARCH_API, data={'key_word': keywords, 'page_num': 1, 'page_size': 20},
-                                     headers=self.headers)
-            result = response.json()['data']['list']
-            return [{
-                'title': str(res['title']).replace('<em class=\"keyword\">', '').replace('</em>', ''),
-                'url': str(res['id']),
-                'author': res['author_name'][0].replace('<em class=\"keyword\">', '').replace('</em>', ''),
-                'name': self.name,
-                'color': self.color,
-                'object': self
-            } for res in result]
-        except Exception as e:
-            print('请求错误，%s，%s' % (response.url, e))
+    def search(self, keywords, detail=False):
+        self.headers['referer'] = 'https://manga.bilibili.com/search?from=manga_detail&keyword='
+        response = requests.post(self.SEARCH_API, data={'key_word': keywords, 'page_num': 1, 'page_size': 20},
+                                 headers=self.headers)
+        result = response.json()['data']['list']
+        results = [{
+            'title': str(res['title']).replace('<em class=\"keyword\">', '').replace('</em>', ''),
+            'url': str(res['id']),
+            'author': res['author_name'][0].replace('<em class=\"keyword\">', '').replace('</em>', ''),
+            'name': self.name,
+            'color': self.color,
+            'object': self,
+            'ban': False,
+            'branches': 1
+        } for res in result]
+        if detail:
+            speed, episodes = self.get_search_data(results)
+            for result in results:
+                result['speed'] = speed
+                result['episodes'] = episodes
+        return results
+
+    # 获取第一话图片的速度
+    def get_search_data(self, results):
+        episodes = self.get_episodes(self.get_soup(results[0]['url']), None, 1)
+        result = self.works(self.get_episodes_url(episodes[0]), None)
+        jpg_list = result['jpg_url_list']
+        start = time.time()
+        loop = asyncio.get_event_loop()
+        results = [asyncio.ensure_future(work_speed({'url': jpg['url'], 'headers': self.headers})) for jpg in jpg_list]
+        loop.run_until_complete(asyncio.wait(results))
+        return float(time.time() - start), len(episodes)
 
     # 获取data
     def get_soup(self, comic_id):
         self.headers['referer'] = 'https://manga.bilibili.com/detail/mc%d?from=manga_search' % int(comic_id)
         response = requests.post(self.ComicDetail_API, data={'comic_id': comic_id}, headers=self.headers)
         result = response.json()
-        return result['data']
+        return result['data'], response.elapsed.total_seconds()
 
     @staticmethod
     def get_title(data):
         return data['title']
 
-    def get_branch(self):
-        return None
+    def get_branch(self, soup):
+        return [1]
 
     def works(self, parameter, title):
-        comic_id = parameter[0]
-        ep = parameter[1]
+        jpg_list, ep_title = self.get_jpg_list(parameter)
+        if jpg_list is not None and ep_title is not None:
+            task = {
+                'title': title,
+                'episode': ep_title,
+                'jpg_url_list': [{'url': res, 'page': index} for index, res in enumerate(jpg_list, 1)],
+                'source': self.name,
+                'headers': self.headers
+            }
+            return task
+
+    def get_episodes(self, data, branch, value):
+        ep_list = reversed(data['ep_list'])
+        ep_list = [{'title': str(ep['short_title']) + '.' + ep['title'], 'id': ep['id']} for ep in ep_list]
+        return ep_list
+
+    def get_jpg_list(self, ep):
+        comic_id = self.url
         ep_id = ep['id']
         ep_title = ep['title']
         self.headers['cookie'] = self.cookie
@@ -72,7 +107,7 @@ class BiliBili(MangaParser):
         if int(result['code']) == 0:
             response = requests.get('https://i0.hdslb.com' + result['data'], headers=self.headers)
             index_data = list(response.content)[9:]
-            hash_key = self.generateHashKey(comic_id, ep_id)
+            hash_key = self.generate_hash_key(comic_id, ep_id)
             index_data = self.un_hash_content(hash_key, index_data)
 
             file = io.BytesIO(index_data)
@@ -80,28 +115,12 @@ class BiliBili(MangaParser):
             data = json.loads(obj.read("index.dat"))
 
             res = requests.post(self.ImageToken, data={"urls": json.dumps(data["pics"])}, headers=self.headers)
-            result = ["{}?token={}".format(i["url"], i["token"]) for i in res.json()["data"]]
-            task = {
-                'title': title,
-                'episode': ep_title,
-                'jpg_url_list': [{'url': res, 'page': index} for index, res in enumerate(result, 1)],
-                'source': self.name,
-                'headers': self.headers
-            }
+            jpg_list = ["{}?token={}".format(i["url"], i["token"]) for i in res.json()["data"]]
 
-            return task
+            return jpg_list, ep_title
         else:
             print('%s https://manga.bilibili.com/mc%d/%d307985' % (result['msg'], comic_id, ep_id))
             return None
-        pass
-
-    def get_episodes(self, data, branch, value):
-        ep_list = reversed(data['ep_list'])
-        ep_list = [{'title': str(ep['short_title']) + '.' + ep['title'], 'id': ep['id']} for ep in ep_list]
-        return ep_list
-
-    def get_jpg_list(self):
-        pass
 
     @staticmethod
     def generate_hash_key(season_id, episode_id):
@@ -127,4 +146,4 @@ class BiliBili(MangaParser):
         return bytes(index_data)
 
     def get_episodes_url(self, ep):
-        return self.url, ep
+        return ep

@@ -3,18 +3,23 @@
 # @Time    : 2020/12/1 12:54
 # @Author  : DHY
 # @File    : run.py
+import asyncio
+import time
+
 from prettytable import PrettyTable
 from MangaParser import MangaParser
 from bilibili import BiliBili
-from common import red_text, enter_keywords, enter_index, blue_text, green_text
+from common import red_text, enter_keywords, enter_index, blue_text, green_text, pink_text
 from concurrent.futures import (ALL_COMPLETED, ThreadPoolExecutor, wait)
 from config import config
 from manhuadb import ManhuaDB
 from manhuadui import ManhuaDui
-from utils import repeat, make_zip
+
+from utils import repeat, make_zip, work_speed
 import os
 from wuqimh import WuQiMh
 import shutil
+from concurrent.futures import (ALL_COMPLETED, ThreadPoolExecutor, wait)
 
 
 def work(parser, args):
@@ -62,12 +67,29 @@ if __name__ == '__main__':
         if result is not None:
             results.extend(task.result())
 
+    executor = ThreadPoolExecutor(max_workers=20)
+    search_results = [executor.submit(result['object'].get_detail, result['url']) for result in results]
+    wait(search_results, return_when=ALL_COMPLETED)
+
+    for search_result in search_results:
+        res = search_result.result()
+        for result in results:
+            if result['url'] == res['url']:
+                result.update(res)
+        # if res['image_list'] is not None:
+        #     headers = res['headers']
+        #     start = time.time()
+        #     loop = asyncio.get_event_loop()
+        #     results = [asyncio.ensure_future(work_speed({'url': jpg, 'headers': headers})) for jpg in res['image_list']]
+        #     loop.run_until_complete(asyncio.wait(results))
+        #     time_consuming = float(time.time() - start)
+        #     print(time_consuming)
+
     # 筛选author
     if author is not None:
         results = [res for res in results if res['author'].find(author) != -1]
-
     if len(results) != 0:
-        table = PrettyTable(['序号', '标题', '漫画源', '作者', '状态'])
+        table = PrettyTable(['序号', '标题', '漫画源', '作者', '分支', '话数', '响应', '存在', '和谐'])
         for index, value in enumerate(results, 1):
             index = str(index)
             color = str(value['color'])
@@ -75,17 +97,32 @@ if __name__ == '__main__':
             url = str(value['url'])
             name = value['name']
             author = str(value['author'])
+            ban = red_text % 'True' if bool(value['ban']) else 'False'
+            branches = str(value['branches'])
+            episodes = str(value['episodes'])
+            if name == 'bilibili漫画':
+                total_seconds = green_text % '稳定'
+            elif float(value['total_seconds']) != 0:
+                total_seconds = str(value['total_seconds'])
+            else:
+                total_seconds = red_text % '404'
             folder = config.folder['path']
             path = '%s/%s' % (name, title)
             source_path = '%s%s' % (folder, path)
-            status = red_text % '存在' if os.path.exists(source_path) else '不存在'
-            table.add_row([color % index, color % title, color % name, color % author, status])
+            status = red_text % 'yes' if os.path.exists(source_path) else 'no'
+            table.add_row(
+                [color % index, color % title, color % name, color % author, color % branches, color % episodes,
+                 total_seconds, status, ban])
         # 左对齐
         table.align['序号'] = 'l'
         table.align['标题'] = 'l'
         table.align['漫画源'] = 'l'
         table.align['作者'] = 'l'
-        table.align['状态'] = 'l'
+        table.align['分支'] = 'l'
+        table.align['话数'] = 'l'
+        table.align['响应'] = 'l'
+        table.align['存在'] = 'l'
+        table.align['和谐'] = 'l'
         # 表格显示出来
         print(table)
 

@@ -4,6 +4,7 @@
 # @Author  : DHY
 # @File    : manhuadui.py
 from MangaParser import MangaParser
+from config import config
 from utils import get_html, aes_decrypt
 import re
 from bs4 import BeautifulSoup
@@ -12,9 +13,9 @@ from fake_useragent import UserAgent
 
 class ManhuaDui(MangaParser):
 
-    def __init__(self, config):
-        self.tor = bool(int(config.download['tor']))
-        self.config = config.manhuadui
+    def __init__(self, Config):
+        self.tor = bool(int(Config.download['tor']))
+        self.config = Config.manhuadui
         self.site = self.config['site']
         self.name = self.config['name']
         self.color = '\33[1;34m%s\033[0m'
@@ -25,7 +26,7 @@ class ManhuaDui(MangaParser):
         }
 
     # 搜索
-    def search(self, keywords: str):
+    def search(self, keywords: str, detail=False):
         try:
             url = self.search_url % keywords
             search_response = get_html(url, headers=self.headers, tor=self.tor)
@@ -43,13 +44,23 @@ class ManhuaDui(MangaParser):
                     'color': self.color,
                     'object': self
                 })
+
+            if detail:
+                soups = self.get_search_soups(result_list)
+
+                details = self.parser_detail(soups)
+
+                for result in result_list:
+                    for detail in details:
+                        if result['title'] == detail['title']:
+                            result.update(detail)
             return result_list
         except Exception as e:
             print('请求错误，%s，%s' % (url, e))
 
     def get_soup(self, url):
         html = get_html(url, self.headers)
-        return BeautifulSoup(html.content, 'lxml')
+        return BeautifulSoup(html.content, 'lxml'), html.elapsed.total_seconds()
 
     @staticmethod
     def get_title(soup):
@@ -64,47 +75,46 @@ class ManhuaDui(MangaParser):
                 branch[item.get_text()] = data_keys[index].get('data-key')
             return branch
         else:
-            raise Exception('已下架')
+            # raise Exception('已下架')
+            return None
 
     def get_episodes(self, soup, branch, value):
-        data_key = branch.get(list(branch.keys())[value])
-        select_page = soup.select('#chapter-list-' + data_key + ' a')
-        pages = []
-        for page in select_page:
-            pages.append(self.site + page.get('href'))
-        return pages
+        if branch is not None:
+            data_key = branch.get(list(branch.keys())[value])
+            select_page = soup.select('#chapter-list-' + data_key + ' a')
+            pages = []
+            for page in select_page:
+                pages.append(self.site + page.get('href'))
+            return pages
 
-    def get_jpg_list(self, code, chapter_path):
-        key = self.config['key'].encode('utf-8')
-        iv = self.config['iv'].encode('utf-8')
-        page_list = aes_decrypt(key, iv, code)[1:-1].split(',')
-        jpg_list = []
-        for index, p in enumerate(page_list, 1):
-            if p.find('ManHuaKu') != -1:
-                if p.find(']') != -1:
-                    jpg_list.append({'url': p.replace('\\', '').replace('"', '').split(']')[0], 'page': index})
-                else:
-                    jpg_list.append({'url': p.replace('\\', '').replace('"', ''), 'page': index})
-            else:
-                if p.find(']') != -1:
-                    jpg_list.append({
-                        'url': self.image_site + chapter_path + p.replace('"', '').split(']')[0],
-                        'page': index
-                    })
-                else:
-                    jpg_list.append({
-                        'url': self.image_site + chapter_path + p.replace('"', ''),
-                        'page': index
-                    })
-        return jpg_list
-
-    def works(self, url, title):
+    def get_jpg_list(self, url):
         response = get_html(url, self.headers)
         soup = BeautifulSoup(response.content, 'lxml')
         episode = soup.select('.head_title h2')[0].get_text()
         code = re.findall("var chapterImages =\\s*\"(.*?)\"", response.text)[0]
         chapter_path = re.findall("var chapterPath = \"(.*?)\"", response.text)[0]
-        jpg_list = self.get_jpg_list(code, chapter_path)
+
+        key = self.config['key'].encode('utf-8')
+        iv = self.config['iv'].encode('utf-8')
+        page_list = aes_decrypt(key, iv, code)[1:-1].split(',')
+        jpg_list = []
+        for p in page_list:
+            if p.find('ManHuaKu') != -1:
+                if p.find(']') != -1:
+                    jpg_list.append(p.replace('\\', '').replace('"', '').split(']')[0])
+                else:
+                    jpg_list.append(p.replace('\\', '').replace('"', ''))
+            else:
+                if p.find(']') != -1:
+                    jpg_list.append(self.image_site + chapter_path + p.replace('"', '').split(']')[0])
+                else:
+                    jpg_list.append(self.image_site + chapter_path + p.replace('"', ''))
+        return jpg_list, episode
+
+    def works(self, url, title):
+        jpg_list, episode = self.get_jpg_list(url)
+
+        jpg_list = [{'url': jpg, 'page': index} for index, jpg in enumerate(jpg_list, 1)]
         task = {'title': title, 'episode': episode, 'jpg_url_list': jpg_list, 'source': self.name,
                 'headers': self.headers}
         return task
