@@ -3,6 +3,7 @@
 # @Time    : 2020/11/29 16:44
 # @Author  : DHY
 # @File    : utils.py
+import time
 import zipfile
 import aiohttp
 import asyncio
@@ -77,7 +78,9 @@ def download(task: dict, semaphore=5, tor=False):
 
     for jpg_url in jpg_url_list:
         url = str(jpg_url['url'])
-        suffix = '.' + url.split('.')[-1]
+        if source == 'bilibili漫画':
+            print(url)
+        # suffix = '.' + url.split('.')[-1]
         # 如果没找到文件夹，递归创建文件夹
         if not os.path.exists('%s%s/%s/%s' % (folder, source, title, episode)):
             os.makedirs('%s%s/%s/%s' % (folder, source, title, episode))
@@ -158,7 +161,7 @@ def read_config(section, item):
         if item is None:
             sections = config.sections()
             index = sections.index(section)
-            return config.items(sections[index])
+            return dict(config.items(sections[index]))
         return str(config.get(section, item))
     except Exception as e:
         print(e)
@@ -192,21 +195,40 @@ async def get_detail(task, tor=False):
         proxies = {'http': 'http://127.0.0.1:8118', 'https': 'http://127.0.0.1:8118'} if tor else None
         url = task['url']
         headers = task['headers']
+        method = task['method'] if 'method' in task else None
+        api = task['api'] if 'api' in task else None
         async with aiohttp.ClientSession() as session:
             session.proxies = proxies
-            response = await session.get(url, headers=headers, timeout=15)
-            assert response.status == 200
-            content = await response.read()
-            return content
+            if method == 'post':
+                data = {'comic_id': url}
+                start = time.time()
+                response = await session.post(api, headers=headers, data=data, timeout=15)
+                assert response.status == 200
+                content = await response.json()
+                response_time = '%.2f' % float(time.time() - start)
+                return content['data'], url, response_time
+            elif method is None:
+                start = time.time()
+                response = await session.get(url, headers=headers, timeout=15)
+                assert response.status == 200
+                content = await response.read()
+                response_time = '%.2f' % float(time.time() - start)
+                return content, url, response_time
 
 
 async def work_speed(task, tor=False):
+    async with asyncio.Semaphore(500):
+        proxies = {'http': 'http://127.0.0.1:8118', 'https': 'http://127.0.0.1:8118'} if tor else None
+        async with aiohttp.ClientSession() as session:
+            session.proxies = proxies
+            response = await session.get(task['url'], headers=task['headers'], timeout=5)
+            await response.read()
+
+
+def speed(url, headers):
     try:
-        async with asyncio.Semaphore(500):
-            proxies = {'http': 'http://127.0.0.1:8118', 'https': 'http://127.0.0.1:8118'} if tor else None
-            async with aiohttp.ClientSession() as session:
-                session.proxies = proxies
-                response = await session.get(task['url'], headers=task['headers'], timeout=5)
-                await response.read()
+        response = requests.get(url, headers=headers)
+        if response.status_code != 404:
+            return '%.2f' % response.elapsed.total_seconds()
     except Exception:
         pass

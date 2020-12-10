@@ -12,7 +12,7 @@ import json
 import zipfile
 from MangaParser import MangaParser
 from common import enter_cookie
-from utils import work_speed
+from utils import work_speed, speed
 
 
 class BiliBili(MangaParser):
@@ -27,18 +27,19 @@ class BiliBili(MangaParser):
         self.Index_API = self.config['index-api']
         self.ImageToken = self.config['image-token-api']
         self.host = self.config['host']
+        self.test = Config.test[self.name]
         self.cookie = enter_cookie(self.config)
         self.headers = {
             'origin': self.host,
             'User-Agent': UserAgent().random
         }
 
-    def search(self, keywords, detail=False):
+    def search(self, keywords):
         self.headers['referer'] = 'https://manga.bilibili.com/search?from=manga_detail&keyword='
         response = requests.post(self.SEARCH_API, data={'key_word': keywords, 'page_num': 1, 'page_size': 20},
                                  headers=self.headers)
         result = response.json()['data']['list']
-        results = [{
+        result_list = [{
             'title': str(res['title']).replace('<em class=\"keyword\">', '').replace('</em>', ''),
             'url': str(res['id']),
             'author': res['author_name'][0].replace('<em class=\"keyword\">', '').replace('</em>', ''),
@@ -48,12 +49,8 @@ class BiliBili(MangaParser):
             'ban': False,
             'branches': 1
         } for res in result]
-        if detail:
-            speed, episodes = self.get_search_data(results)
-            for result in results:
-                result['speed'] = speed
-                result['episodes'] = episodes
-        return results
+        result_list = self.get_detail(result_list)
+        return result_list
 
     # 获取第一话图片的速度
     def get_search_data(self, results):
@@ -78,13 +75,13 @@ class BiliBili(MangaParser):
         return data['title']
 
     def get_branch(self, soup):
-        return [1]
+        return {'branch_id': 1}
 
-    def works(self, parameter, title):
-        jpg_list, ep_title = self.get_jpg_list(parameter)
+    def works(self, episodes_url):
+        jpg_list, ep_title = self.get_jpg_list(episodes_url)
         if jpg_list is not None and ep_title is not None:
             task = {
-                'title': title,
+                'title': self.title,
                 'episode': ep_title,
                 'jpg_url_list': [{'url': res, 'page': index} for index, res in enumerate(jpg_list, 1)],
                 'source': self.name,
@@ -92,7 +89,7 @@ class BiliBili(MangaParser):
             }
             return task
 
-    def get_episodes(self, data, branch, value):
+    def get_episodes(self, data, branch_id):
         ep_list = reversed(data['ep_list'])
         ep_list = [{'title': str(ep['short_title']) + '.' + ep['title'], 'id': ep['id']} for ep in ep_list]
         return ep_list
@@ -144,6 +141,3 @@ class BiliBili(MangaParser):
         for idx in range(len(index_data)):
             index_data[idx] ^= hash_key[idx % 8]
         return bytes(index_data)
-
-    def get_episodes_url(self, ep):
-        return ep

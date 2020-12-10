@@ -26,6 +26,7 @@ class config:
             self.download['section'] = 'download'
             self.folder['section'] = 'folder'
             self.bilibili['section'] = 'bilibili'
+            self.test = dict(config_parser.items('test'))
             self.check_dicts([self.folder, self.download, self.manhuadb, self.manhuadui, self.wuqimh, self.bilibili])
         except Exception as e:
             print(red_text % 'config.ini参数错误，%s' % e)

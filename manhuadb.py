@@ -8,7 +8,7 @@ from bs4 import BeautifulSoup
 import base64
 import json
 from config import config
-from utils import get_html
+from utils import get_html, read_config, speed
 from MangaParser import MangaParser
 
 
@@ -20,6 +20,7 @@ class ManhuaDB(MangaParser):
         self.site = self.config['site']
         self.host = self.config['host']
         self.name = self.config['name']
+        self.test = Config.test[self.name]
         self.color = '\33[1;33m%s\033[0m'
         self.search_url = self.config['search-url']
         self.headers = {
@@ -45,6 +46,8 @@ class ManhuaDB(MangaParser):
                  'object': self
                  },
             )
+
+        result_list = self.get_detail(result_list)
         return result_list
 
     def get_soup(self, url):
@@ -74,8 +77,8 @@ class ManhuaDB(MangaParser):
                 url_list.append(self.site + url)
         return url_list
 
-    def get_jpg_list(self, url):
-        response = get_html(url, self.headers)
+    def get_jpg_list(self, episode_url):
+        response = get_html(episode_url, self.headers)
         html = response.text
         jpg_url = re.findall(r'<img class="img-fluid show-pic" src="(.*?)" />', html)[0]
         suffix = jpg_url.split('/')[-1]
@@ -85,14 +88,14 @@ class ManhuaDB(MangaParser):
         jpg_list = [prefix + jpg['img'] for jpg in jpg_list]
         return jpg_list, episode
 
-    def works(self, url, title):
-        result, episode = self.get_jpg_list(url)
+    def works(self, episode_url):
+        result, episode = self.get_jpg_list(episode_url)
         header = {
             'Host': self.config['image-host'],
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; rv:63.0) Gecko/20100101 Firefox/63.0',
         }
         task = {
-            'title': title,
+            'title': self.title,
             'episode': episode,
             'jpg_url_list': [],
             'source': self.name,
@@ -104,9 +107,6 @@ class ManhuaDB(MangaParser):
         if len(task['jpg_url_list']) != 0:
             task['headers']['Host'] = task['jpg_url_list'][0]['url'].split('/')[2]
         return task
-
-    def get_episodes_url(self, url):
-        return url
 
 
 if __name__ == '__main__':

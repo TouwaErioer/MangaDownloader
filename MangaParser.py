@@ -4,18 +4,20 @@
 # @Author  : DHY
 # @File    : MangaParser.py
 import asyncio
+import os
 import time
 from abc import ABCMeta, abstractmethod
 from bs4 import BeautifulSoup
 from common import enter_branch, enter_range
 from concurrent.futures import (ALL_COMPLETED, ThreadPoolExecutor, wait)
-from utils import download, get_detail, work_speed
+from utils import download, get_detail, work_speed, speed
 
 
 class MangaParser(metaclass=ABCMeta):
 
     def __init__(self):
         self.url = None
+        self.title = None
 
     # 搜索
     @abstractmethod
@@ -39,106 +41,77 @@ class MangaParser(metaclass=ABCMeta):
 
     # 获取全部话数
     @abstractmethod
-    def get_episodes(self, soup, branch, value):
+    def get_episodes(self, soup, branch_id):
         pass
 
     # 获取图片列表
     @abstractmethod
-    def get_jpg_list(self):
+    def get_jpg_list(self, episode_url):
         pass
 
     # 任务
     @abstractmethod
-    def works(self):
+    def works(self, episode_url):
         pass
-
-    # 获取话链接
-    def get_episodes_url(self, url):
-        return url
 
     # 获取搜索结果的soups
     def get_search_soups(self, result_list):
         if len(result_list) != 0:
-            tasks = [{'url': result['url'], 'headers': self.headers} for result in result_list]
+            tasks = [{'url': result['url'], 'headers': self.headers, 'name': result['name']} for result in result_list]
+            # 解决 RuntimeError: Event loop is close
+            # https://stackoverflow.com/questions/61543406/asyncio-run-runtimeerror-event-loop-is-closed
+            # Linux ProactorEventLoop
+            # Windows SelectorEventLoop
+            # Python3.8 -
+            if os.name == 'nt':
+                asyncio.set_event_loop(asyncio.SelectorEventLoop())
+            elif os.name == 'posix':
+                asyncio.set_event_loop(asyncio.ProactorEventLoop())
             loop = asyncio.get_event_loop()
-            results = [asyncio.ensure_future(get_detail(task)) for task in tasks]
+            results = []
+            for task in tasks:
+                if task['name'] == 'bilibili漫画':
+                    task['api'] = self.ComicDetail_API
+                    task['method'] = 'post'
+                results.append(asyncio.ensure_future(get_detail(task)))
             loop.run_until_complete(asyncio.wait(results))
             contents = [res.result() for res in results if res.result() is not None]
-            soups = [BeautifulSoup(content, 'lxml') for content in contents]
-            return soups
+            if type(contents[0][0]) is dict:
+                details = [{'url': content[1], 'soup': content[0], 'response_time': content[2]} for content in contents]
+            else:
+                details = [{'url': content[1], 'soup': BeautifulSoup(content[0], 'lxml'), 'response_time': content[2]}
+                           for content in contents]
+            return details
 
-    def parser_detail(self, soups):
-        if soups is not None and len(soups) != 0:
+    def parser_detail(self, details):
+        if details is not None and len(details) != 0:
             result = []
-            test = None
-            for soup in soups:
-                title = self.get_title(soup)
+            for detail in details:
+                soup = detail['soup']
+                score = detail['response_time']
                 branch = self.get_branch(soup)
                 ban = False if branch is not None else True
-                branches = None if ban else len(branch)
-                episodes = None if ban else self.get_episodes(soup, branch, 0)
-                test = episodes[0]
-                result.append({'title': title, 'ban': ban, 'branches': branches, 'episodes': len(episodes)})
+                branches = 0 if ban else len(branch)
+                branch_id = 0 if ban else branch.get(list(branch.keys())[0])
+                episodes = 0 if ban else len(self.get_episodes(soup, branch_id))
+                result.append(
+                    {'url': detail['url'], 'ban': ban, 'branches': branches, 'episodes': episodes, 'score': score})
+            return result
 
-            # 只测试第一项第一页图片
-            jpg_list, episode = self.get_jpg_list(test)
+    def get_detail(self, result_list):
+        soups = self.get_search_soups(result_list)
+        details = self.parser_detail(soups)
+        score = speed(self.test, self.headers)
+        for result in result_list:
+            for detail in details:
+                if result['url'] == detail['url']:
+                    result.update(detail)
+                    if score is not None and result['score'] is not None:
+                        result['speed'] = '%.2f' % (float(result['score']) + float(score) / 2)
+                    else:
+                        result['speed'] = None
 
-            start = time.time()
-            loop = asyncio.get_event_loop()
-            results = [asyncio.ensure_future(work_speed({'url': jpg, 'headers': self.headers})) for jpg in jpg_list]
-            loop.run_until_complete(asyncio.wait(results))
-            time_consuming = float(time.time() - start)
-
-            # 每下载一张图耗时时间
-            speed = '%.2f' % float(time_consuming / len(jpg_list))
-        for res in result:
-            res['speed'] = speed
-        return result
-
-    def get_detail(self, url):
-
-        self.url = url
-
-        # 获取soup
-        soup, total_seconds = self.get_soup(url)
-
-        # 分支
-        branch = self.get_branch(soup)
-
-        branches = 1 if branch is None else len(branch)
-
-        ban = False if branch is not None else True
-
-        # 全部的话数
-        episodes = self.get_episodes(soup, branch, 0)
-
-        eps = 0 if branch is None else len(episodes)
-
-        if episodes is not None and type(episodes[0]) is str:
-            image_list, episode = self.get_jpg_list(episodes[0])
-        else:
-            image_list = None
-
-        # image_total_seconds = 0
-        # if episodes is not None and type(episodes[0]) is str:
-        #     image_list, episode = self.get_jpg_list(episodes[0])
-        #     try:
-        #         response = requests.get(image_list[0], headers=self.headers, timeout=15)
-        #         if response.status_code != 404:
-        #             image_total_seconds = response.elapsed.total_seconds()
-        #     except Exception:
-        #         pass
-        # elif episodes is None:
-        #     image_total_seconds = 0
-        # elif type(episodes[0]) is tuple:  # 排除bilibili
-        #     image_total_seconds = 0
-        #
-        # if image_total_seconds != 0:
-        #     total_seconds = image_total_seconds + total_seconds
-        # else:  # image_total_seconds为0代表资源不存在
-        #     total_seconds = 0
-        return {'ban': ban, 'total_seconds': '%.2f' % total_seconds, 'branches': branches, 'episodes': eps, 'url': url,
-                'image_list': image_list, 'headers': self.headers}
+        return result_list
 
     # 运行
     def run(self, url):
@@ -149,7 +122,7 @@ class MangaParser(metaclass=ABCMeta):
         soup, total_seconds = self.get_soup(url)
 
         # 获取标题
-        title = self.get_title(soup)
+        self.title = self.get_title(soup)
 
         # 分支
         branch = self.get_branch(soup)
@@ -167,7 +140,7 @@ class MangaParser(metaclass=ABCMeta):
 
         # 解析图片链接，线程池
         executor = ThreadPoolExecutor(max_workers=20)
-        all_task = [executor.submit(self.works, self.get_episodes_url(link), title) for link in episodes[start:end]]
+        all_task = [executor.submit(self.works, url) for url in episodes[start:end]]
         wait(all_task, return_when=ALL_COMPLETED)
 
         failure_list = []

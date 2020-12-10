@@ -71,6 +71,8 @@ def enter_branch(tab: dict):
                 print('\033[0;31;40m输入不为数字\033[0m')
             except IndexError:
                 print('\033[0;31;40m超出分支范围\033[0m')
+    elif len(tab) == 1:
+        return tab.get(list(tab.keys())[0])
 
 
 def enter_command():

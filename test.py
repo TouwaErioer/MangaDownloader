@@ -5,8 +5,6 @@
 # @File    : test.py
 import os
 import zipfile
-
-import fake_useragent
 from flask import send_from_directory, Flask, make_response
 
 app = Flask(__name__)
@@ -33,4 +31,4 @@ def make_zip(source_dir, output_filename):
 
 
 if __name__ == '__main__':
-    print(len(os.listdir('D:\mangadownloader\新建文件夹')))
+    print(os.name)

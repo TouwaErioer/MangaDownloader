@@ -5,7 +5,7 @@
 # @File    : manhuadui.py
 from MangaParser import MangaParser
 from config import config
-from utils import get_html, aes_decrypt
+from utils import get_html, aes_decrypt, speed
 import re
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
@@ -18,6 +18,7 @@ class ManhuaDui(MangaParser):
         self.config = Config.manhuadui
         self.site = self.config['site']
         self.name = self.config['name']
+        self.test = Config.test[self.name]
         self.color = '\33[1;34m%s\033[0m'
         self.image_site = self.config['image-site']
         self.search_url = self.config['search-url']
@@ -26,37 +27,26 @@ class ManhuaDui(MangaParser):
         }
 
     # 搜索
-    def search(self, keywords: str, detail=False):
-        try:
-            url = self.search_url % keywords
-            search_response = get_html(url, headers=self.headers, tor=self.tor)
-            search_soup = BeautifulSoup(search_response.content, 'lxml')
-            results = search_soup.select('.list-comic')
-            result_list = []
-            for result in results:
-                author = result.select('.auth')[0].get_text()
-                a = result.select('a')[1]
-                result_list.append({
-                    'title': a.get('title'),
-                    'url': a.get('href'),
-                    'author': author,
-                    'name': self.name,
-                    'color': self.color,
-                    'object': self
-                })
+    def search(self, keywords: str, detail=True):
+        url = self.search_url % keywords
+        search_response = get_html(url, headers=self.headers, tor=self.tor)
+        search_soup = BeautifulSoup(search_response.content, 'lxml')
+        results = search_soup.select('.list-comic')
+        result_list = []
+        for result in results:
+            author = result.select('.auth')[0].get_text()
+            a = result.select('a')[1]
+            result_list.append({
+                'title': a.get('title'),
+                'url': a.get('href'),
+                'author': author,
+                'name': self.name,
+                'color': self.color,
+                'object': self
+            })
 
-            if detail:
-                soups = self.get_search_soups(result_list)
-
-                details = self.parser_detail(soups)
-
-                for result in result_list:
-                    for detail in details:
-                        if result['title'] == detail['title']:
-                            result.update(detail)
-            return result_list
-        except Exception as e:
-            print('请求错误，%s，%s' % (url, e))
+        result_list = self.get_detail(result_list)
+        return result_list
 
     def get_soup(self, url):
         html = get_html(url, self.headers)
@@ -78,10 +68,10 @@ class ManhuaDui(MangaParser):
             # raise Exception('已下架')
             return None
 
-    def get_episodes(self, soup, branch, value):
-        if branch is not None:
-            data_key = branch.get(list(branch.keys())[value])
-            select_page = soup.select('#chapter-list-' + data_key + ' a')
+    def get_episodes(self, soup, branch_id):
+        if branch_id is not None:
+            data_key = branch_id
+            select_page = soup.select('#chapter-list-%s a' % data_key)
             pages = []
             for page in select_page:
                 pages.append(self.site + page.get('href'))
@@ -111,10 +101,10 @@ class ManhuaDui(MangaParser):
                     jpg_list.append(self.image_site + chapter_path + p.replace('"', ''))
         return jpg_list, episode
 
-    def works(self, url, title):
+    def works(self, url):
         jpg_list, episode = self.get_jpg_list(url)
 
         jpg_list = [{'url': jpg, 'page': index} for index, jpg in enumerate(jpg_list, 1)]
-        task = {'title': title, 'episode': episode, 'jpg_url_list': jpg_list, 'source': self.name,
+        task = {'title': self.title, 'episode': episode, 'jpg_url_list': jpg_list, 'source': self.name,
                 'headers': self.headers}
         return task
