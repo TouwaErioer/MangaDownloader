@@ -2,15 +2,14 @@
 # -*- coding: utf-8 -*-
 # @Time    : 2020/12/3 12:35
 # @Author  : DHY
-# @File    : MangaParser.py
+# @File    : manga.py
 import asyncio
-import os
 import time
 from abc import ABCMeta, abstractmethod
 from bs4 import BeautifulSoup
-from common import enter_branch, enter_range
+from compoent.common import enter_branch, enter_range
 from concurrent.futures import (ALL_COMPLETED, ThreadPoolExecutor, wait)
-from utils import download, get_detail, work_speed, speed
+from utlis.utils import download, get_detail
 
 
 class MangaParser(metaclass=ABCMeta):
@@ -63,10 +62,13 @@ class MangaParser(metaclass=ABCMeta):
             # Linux ProactorEventLoop
             # Windows SelectorEventLoop
             # Python3.8 -
-            if os.name == 'nt':
-                asyncio.set_event_loop(asyncio.SelectorEventLoop())
-            elif os.name == 'posix':
-                asyncio.set_event_loop(asyncio.ProactorEventLoop())
+            # if os.name == 'nt':
+            #     asyncio.set_event_loop(asyncio.SelectorEventLoop())
+            # elif os.name == 'posix':
+            #     # Linux使用uvloop
+            #     import uvloop
+            #     asyncio.set_event_loop(uvloop.new_event_loop())
+            asyncio.set_event_loop(asyncio.SelectorEventLoop())
             loop = asyncio.get_event_loop()
             results = []
             for task in tasks:
@@ -75,6 +77,7 @@ class MangaParser(metaclass=ABCMeta):
                     task['method'] = 'post'
                 results.append(asyncio.ensure_future(get_detail(task)))
             loop.run_until_complete(asyncio.wait(results))
+            loop.close()
             contents = [res.result() for res in results if res.result() is not None]
             if type(contents[0][0]) is dict:
                 details = [{'url': content[1], 'soup': content[0], 'response_time': content[2]} for content in contents]
@@ -95,21 +98,21 @@ class MangaParser(metaclass=ABCMeta):
                 branch_id = 0 if ban else branch.get(list(branch.keys())[0])
                 episodes = 0 if ban else len(self.get_episodes(soup, branch_id))
                 result.append(
-                    {'url': detail['url'], 'ban': ban, 'branches': branches, 'episodes': episodes, 'score': score})
+                    {'url': detail['url'], 'ban': ban, 'branches': branches, 'episodes': episodes, 'speed': score})
             return result
 
     def get_detail(self, result_list):
         soups = self.get_search_soups(result_list)
         details = self.parser_detail(soups)
-        score = speed(self.test, self.headers)
+        # score = speed(self.website, self.headers)
         for result in result_list:
             for detail in details:
                 if result['url'] == detail['url']:
                     result.update(detail)
-                    if score is not None and result['score'] is not None:
-                        result['speed'] = '%.2f' % (float(result['score']) + float(score) / 2)
-                    else:
-                        result['speed'] = None
+                    # if score is not None and result['score'] is not None:
+                    #     result['speed'] = '%.2f' % (float(result['score']) + float(score) / 2)
+                    # else:
+                    #     result['speed'] = None
 
         return result_list
 

@@ -8,8 +8,8 @@ from bs4 import BeautifulSoup
 import base64
 import json
 from config import config
-from utils import get_html, read_config, speed
-from MangaParser import MangaParser
+from utlis.utils import get_html
+from website.manga import MangaParser
 
 
 class ManhuaDB(MangaParser):

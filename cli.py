@@ -2,17 +2,18 @@
 # -*- coding: utf-8 -*-
 # @Time    : 2020/12/1 12:54
 # @Author  : DHY
-# @File    : run.py
-from MangaParser import MangaParser
-from bilibili import BiliBili
-from common import enter_keywords, enter_index, blue_text, green_text, yellow_text
-from config import config
-from manhuadb import ManhuaDB
-from manhuadui import ManhuaDui
-from table import show
-from tools.file_tool import get_file_total
-from utils import repeat, make_zip
-from wuqimh import WuQiMh
+# @File    : cli.py
+
+from compoent.common import enter_keywords, enter_index, blue_text, green_text, yellow_text
+from config.config import config
+from website.manga import MangaParser
+from website.manhuadb import ManhuaDB
+from website.manhuadui import ManhuaDui
+from website.wuqimh import WuQiMh
+from website.bilibili import BiliBili
+from run.table import show
+from compoent.file_tool import get_file_total
+from utlis.utils import repeat, make_zip
 import shutil
 from concurrent.futures import (ALL_COMPLETED, ThreadPoolExecutor, wait)
 

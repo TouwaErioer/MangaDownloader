@@ -7,7 +7,7 @@ import configparser
 
 from prettytable import PrettyTable
 
-from utils import read_config, write_config
+from utlis.utils import write_config
 
 yellow_text = '\33[1;33m%s\033[0m'
 blue_text = '\33[1;34m%s\033[0m'
@@ -157,7 +157,7 @@ def check_config():
 
         folder = sections[sections.index('folder')]
         download = sections[sections.index('download')]
-        site = sections[sections.index('site')]
+        site = sections[sections.index('website')]
         decrypt = sections[sections.index('decrypt')]
         search = sections[sections.index('search')]
         path = config.get(folder, 'path')

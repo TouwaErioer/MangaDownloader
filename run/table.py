@@ -8,12 +8,12 @@ from pathlib import Path
 
 from prettytable import PrettyTable
 
-from common import red_text, green_text
+from compoent.common import red_text, green_text
 
 
 def show(results, config):
     if len(results) != 0:
-        table = PrettyTable(['序号', '标题', '漫画源', '作者', '分支', '话数', '存在', '和谐', '响应'])
+        table = PrettyTable(['序号', '标题', '漫画源', '作者', '分支', '话数', '存在', '和谐', '速度'])
         for index, value in enumerate(results, 1):
             index = str(index)
             color = str(value['color'])
@@ -53,6 +53,6 @@ def show(results, config):
         table.align['分支'] = 'l'
         table.align['话数'] = 'l'
         table.align['和谐'] = 'l'
-        table.align['响应'] = 'l'
+        table.align['速度'] = 'l'
         # 表格显示出来
         print(table)

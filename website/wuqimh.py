@@ -6,9 +6,8 @@
 import js2py
 import re
 
-from MangaParser import MangaParser
-from config import config
-from utils import get_html, speed
+from website.manga import MangaParser
+from utlis.utils import get_html
 from fake_useragent import UserAgent
 from bs4 import BeautifulSoup
 from concurrent.futures import (ALL_COMPLETED, ThreadPoolExecutor, wait)

@@ -10,9 +10,9 @@ from fake_useragent import UserAgent
 import io
 import json
 import zipfile
-from MangaParser import MangaParser
-from common import enter_cookie
-from utils import work_speed, speed
+from website.manga import MangaParser
+from compoent.common import enter_cookie
+from utlis.utils import work_speed
 
 
 class BiliBili(MangaParser):

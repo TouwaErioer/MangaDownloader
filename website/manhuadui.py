@@ -3,9 +3,8 @@
 # @Time    : 2020/12/1 10:05
 # @Author  : DHY
 # @File    : manhuadui.py
-from MangaParser import MangaParser
-from config import config
-from utils import get_html, aes_decrypt, speed
+from website.manga import MangaParser
+from utlis.utils import get_html, aes_decrypt
 import re
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent

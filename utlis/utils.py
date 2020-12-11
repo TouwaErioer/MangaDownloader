@@ -42,11 +42,17 @@ async def work(task: dict, semaphore, tor=False):
             proxies = None
             if tor:
                 proxies = {'http': 'http://127.0.0.1:8118', 'https': 'http://127.0.0.1:8118'}
+            # connector = None
+            # request_class = None
+            # elif socks5:
+            #     connector = ProxyConnector()
+            #     proxies = 'socks5://127.0.0.1:1090'
+            #     request_class = ProxyClientRequest
             headers = task['headers']
             headers['User-Agent'] = UserAgent().random
             async with aiohttp.ClientSession() as session:
                 session.proxies = proxies
-                response = await session.get(task['url'], headers=headers, timeout=5)
+                response = await session.get(task['url'], headers=headers, timeout=5, proxy=proxies)
                 if response.status != 404:
                     content = await response.read()
                     with open(task['path'], 'wb') as f:
@@ -55,8 +61,7 @@ async def work(task: dict, semaphore, tor=False):
                     # 资源不存在
                     episode = str(task['path']).split('/')[-2]
                     return str('\33[1;32m%s\033[0m' % ('%s 资源不存在' % episode))
-    except Exception as e:
-        print(e)
+    except Exception:
         # 连接异常，失败任务
         return task
 
@@ -172,7 +177,7 @@ def write_config(section, item, value):
         config = configparser.ConfigParser()
         config.read('config.ini', encoding='utf-8')
         config.set(section, item, value)
-        config.write(open('config.ini', 'w'))
+        config.write(open('../config.ini', 'w'))
     except Exception as e:
         print(e)
 

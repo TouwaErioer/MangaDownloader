@@ -6,7 +6,7 @@
 import configparser
 import os
 
-from common import red_text
+from compoent.common import red_text
 
 
 class config:
@@ -29,7 +29,7 @@ class config:
             self.test = dict(config_parser.items('test'))
             self.check_dicts([self.folder, self.download, self.manhuadb, self.manhuadui, self.wuqimh, self.bilibili])
         except Exception as e:
-            print(red_text % 'config.ini参数错误，%s' % e)
+            print(red_text % 'config.ini参数错误1，%s' % e)
 
     @staticmethod
     def check_dicts(sections: list):
