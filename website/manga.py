@@ -54,9 +54,9 @@ class MangaParser(metaclass=ABCMeta):
         pass
 
     # 获取搜索结果的soups
-    def get_search_soups(self, result_list):
-        if len(result_list) != 0:
-            tasks = [{'url': result['url'], 'headers': self.headers, 'name': result['name']} for result in result_list]
+    def get_search_soups(self, results):
+        if len(results) != 0:
+            tasks = [{'url': result.href, 'headers': self.headers, 'name': result.name} for result in results]
             # 解决 RuntimeError: Event loop is close
             # https://stackoverflow.com/questions/61543406/asyncio-run-runtimeerror-event-loop-is-closed
             # Linux ProactorEventLoop
@@ -107,20 +107,14 @@ class MangaParser(metaclass=ABCMeta):
                 results.append(result)
             return results
 
-    def get_detail(self, result_list):
-        soups = self.get_search_soups(result_list)
+    def get_detail(self, results):
+        soups = self.get_search_soups(results)
         details = self.parser_detail(soups)
-        # score = speed(self.website, self.headers)
-        for result in result_list:
+        for result in results:
             for detail in details:
-                if result['url'] == detail['url']:
+                if result.href == detail['url']:
                     result.update(detail)
-                    # if score is not None and result['score'] is not None:
-                    #     result['speed'] = '%.2f' % (float(result['score']) + float(score) / 2)
-                    # else:
-                    #     result['speed'] = None
-
-        return result_list
+        return results
 
     # 运行
     def run(self, url):

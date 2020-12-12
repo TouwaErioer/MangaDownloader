@@ -3,6 +3,9 @@
 # @Time    : 2020/12/1 10:05
 # @Author  : DHY
 # @File    : manhuadui.py
+
+from compoent.result import Result
+from compoent.task import Task
 from website.manga import MangaParser
 from utlis.utils import get_html, aes_decrypt
 import re
@@ -30,22 +33,16 @@ class ManhuaDui(MangaParser):
         url = self.search_url % keywords
         search_response = get_html(url, headers=self.headers, tor=self.tor)
         search_soup = BeautifulSoup(search_response.content, 'lxml')
-        results = search_soup.select('.list-comic')
-        result_list = []
-        for result in results:
-            author = result.select('.auth')[0].get_text()
-            a = result.select('a')[1]
-            result_list.append({
-                'title': a.get('title'),
-                'url': a.get('href'),
-                'author': author,
-                'name': self.name,
-                'color': self.color,
-                'object': self
-            })
-
-        result_list = self.get_detail(result_list)
-        return result_list
+        comic_list = search_soup.select('.list-comic')
+        results = []
+        for comic in comic_list:
+            title = a.get('title')
+            author = comic.select('.auth')[0].get_text()
+            href = a.get('href')
+            a = comic.select('a')[1]
+            results.append(Result(title, href, author, self, self.color, self.name, None, None, None, None))
+        results = self.get_detail(results)
+        return results
 
     def get_soup(self, url):
         self.headers['User-Agent'] = UserAgent().random
@@ -102,9 +99,7 @@ class ManhuaDui(MangaParser):
         return jpg_list, episode
 
     def works(self, url):
-        jpg_list, episode = self.get_jpg_list(url)
-
-        jpg_list = [{'url': jpg, 'page': index} for index, jpg in enumerate(jpg_list, 1)]
-        task = {'title': self.title, 'episode': episode, 'jpg_url_list': jpg_list, 'source': self.name,
-                'headers': self.headers}
+        jpg_list, episode_title = self.get_jpg_list(url)
+        jpg_list = [{'url': jpg, 'index': index} for index, jpg in enumerate(jpg_list, 1)]
+        task = Task(self.name, self.title, episode_title, jpg_list, self.headers)
         return task

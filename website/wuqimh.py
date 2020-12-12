@@ -6,6 +6,8 @@
 import js2py
 import re
 
+from compoent.result import Result
+from compoent.task import Task
 from website.manga import MangaParser
 from utlis.utils import get_html
 from fake_useragent import UserAgent
@@ -37,18 +39,13 @@ class WuQiMh(MangaParser):
         soup = BeautifulSoup(html.content, 'lxml')
         page_count = len(soup.select('.pager-cont a'))
         books = soup.select('.book-detail')
-        result_list = []
+        results = []
         for book in books:
             a = book.select('dt a')[0]
+            title = a.get('title')
+            href = self.site + a.get('href')
             author = book.select('.tags')[2].select('a')[0].get_text()
-            result_list.append({
-                'title': a.get('title'),
-                'url': 'http://' + self.host + a.get('href'),
-                'author': author,
-                'name': self.name,
-                'color': self.color,
-                'object': self
-            })
+            results.append(Result(title, href, author, self, self.color, self.name, None, None, None, None))
         # 页数大于1，线程池获取第二页以后的数据
         if page_count > 1 and is_recursion is not True:
             executor = ThreadPoolExecutor(max_workers=5)
@@ -56,9 +53,9 @@ class WuQiMh(MangaParser):
                         range(2, page_count + 1)]
             wait(all_task, return_when=ALL_COMPLETED)
             for task in all_task:
-                result_list.extend(task.result())
-        result_list = self.get_detail(result_list)
-        return result_list
+                results.extend(task.result())
+        results = self.get_detail(results)
+        return results
 
     def get_soup(self, url):
         self.headers['User-Agent'] = UserAgent().random
@@ -84,21 +81,15 @@ class WuQiMh(MangaParser):
         js = re.findall('eval(.*?)\\n', html.text)[0]
         episode = re.findall('<h2>(.*?)</h2>', html.text)[0]
         # js2py运行js获取图片列表
-
-        print(js)
         code = js2py.eval_js(js)
         jpg_list = str(re.findall("'fs':\\s*(\\[.*?\\])", code)[0])[1:-1].replace("'", '').split(',')
         jpg_list = [self.image_site + jpg for jpg in jpg_list]
         return jpg_list, episode
 
     def works(self, episodes_url):
-        jpg_list, episode = self.get_jpg_list(episodes_url)
-        header = self.headers
-        header.pop('Host')
-        task = {'title': self.title,
-                'episode': episode,
-                'jpg_url_list': [{'url': jpg, 'page': index} for index, jpg in enumerate(jpg_list, 1)],
-                'source': self.name,
-                'headers': header
-                }
+        jpg_list, episode_title = self.get_jpg_list(episodes_url)
+        headers = self.headers.copy()
+        headers.pop('Host')
+        jpg_list = [{'url': jpg, 'index': index} for index, jpg in enumerate(jpg_list, 1)]
+        task = Task(self.name, self.title, episode_title, jpg_list, headers)
         return task

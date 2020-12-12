@@ -70,18 +70,19 @@ if __name__ == '__main__':
         results = [res for res in results if res['author'].find(author) != -1]
 
     if len(results) != 0:
+
         # 显示表
         show(results, config)
 
         # 输入序号
-        value = enter_index(len(results))
-        print(value)
-        selected_result = results[value - 1]
-        url = str(selected_result['url'])
-        parser = selected_result['object']
-        ban = selected_result['ban']
-        title = selected_result['title']
-        name = selected_result['name']
+        value = enter_index(len(results)) - 1
+
+        selected = results[value]
+        url = selected.href
+        parser = selected.obj
+        ban = selected.ban
+        title = selected.title
+        name = selected.name
         path = config.folder['path']
         source_dir = '%s%s/%s' % (path, name, title)
         zip_name = '%s%s/%s.zip' % (path, name, title)

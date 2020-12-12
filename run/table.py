@@ -16,26 +16,14 @@ def show(results, config):
         table = PrettyTable(['序号', '标题', '漫画源', '作者', '分支', '话数', '存在', '和谐', '速度'])
         for index, value in enumerate(results, 1):
             index = str(index)
-            color = str(value['color'])
-            title = str(value['title'])
-            if len(title) > 15:
-                title = title[0:15] + '...'
-            else:
-                title = title
-            url = str(value['url'])
-            name = value['name']
-            author = str(value['author'])
-            ban = red_text % 'True' if bool(value['ban']) else 'False'
-            branches = str(value['branches'])
-            episodes = str(value['episodes'])
-            speed = value['speed']
-            if speed is not None:
-                if float(speed) < 1:
-                    speed = green_text % speed
-                else:
-                    speed = red_text % speed
-            else:
-                speed = red_text % '404'
+            color = value.color
+            title = show_title(value.title)
+            name = value.name
+            author = value.author
+            ban = show_ban(value.ban)
+            branches = value.branches
+            episodes = value.episodes
+            speed = show_speed(value.speed)
             folder = config.folder['path']
             path = '%s/%s' % (name, title)
             remote = bool(config.download['remote'])
@@ -56,3 +44,24 @@ def show(results, config):
         table.align['速度'] = 'l'
         # 表格显示出来
         print(table)
+
+
+def show_ban(ban):
+    return red_text % 'True' if bool(ban) else 'False'
+
+
+def show_title(title):
+    if len(title) > 15:
+        return title[0:15] + '...'
+    else:
+        return title
+
+
+def show_speed(speed):
+    if speed is not None:
+        if float(speed) < 1:
+            return green_text % speed
+        else:
+            return red_text % speed
+    else:
+        return red_text % '404'

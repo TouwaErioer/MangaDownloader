@@ -10,6 +10,9 @@ from fake_useragent import UserAgent
 import io
 import json
 import zipfile
+
+from compoent.result import Result
+from compoent.task import Task
 from website.manga import MangaParser
 from compoent.common import enter_cookie
 from utlis.utils import work_speed
@@ -36,21 +39,17 @@ class BiliBili(MangaParser):
 
     def search(self, keywords):
         self.headers['referer'] = 'https://manga.bilibili.com/search?from=manga_detail&keyword='
-        response = requests.post(self.SEARCH_API, data={'key_word': keywords, 'page_num': 1, 'page_size': 20},
-                                 headers=self.headers)
+        data = {'key_word': keywords, 'page_num': 1, 'page_size': 20}
+        response = requests.post(self.SEARCH_API, data=data, headers=self.headers)
         result = response.json()['data']['list']
-        result_list = [{
-            'title': str(res['title']).replace('<em class=\"keyword\">', '').replace('</em>', ''),
-            'url': str(res['id']),
-            'author': res['author_name'][0].replace('<em class=\"keyword\">', '').replace('</em>', ''),
-            'name': self.name,
-            'color': self.color,
-            'object': self,
-            'ban': False,
-            'branches': 1
-        } for res in result]
-        result_list = self.get_detail(result_list)
-        return result_list
+        results = []
+        for res in result:
+            title = str(res['title']).replace('<em class=\"keyword\">', '').replace('</em>', '')
+            href = str(res['id'])
+            author = res['author_name'][0].replace('<em class=\"keyword\">', '').replace('</em>', '')
+            results.append(Result(title, href, author, self, self.color, self.name, False, 1, None, None))
+            results = self.get_detail(results)
+        return results
 
     # 获取第一话图片的速度
     def get_search_data(self, results):
@@ -79,15 +78,10 @@ class BiliBili(MangaParser):
         return {'branch_id': 1}
 
     def works(self, episodes_url):
-        jpg_list, ep_title = self.get_jpg_list(episodes_url)
-        if jpg_list is not None and ep_title is not None:
-            task = {
-                'title': self.title,
-                'episode': ep_title,
-                'jpg_url_list': [{'url': res, 'page': index} for index, res in enumerate(jpg_list, 1)],
-                'source': self.name,
-                'headers': self.headers
-            }
+        jpg_list, episode_title = self.get_jpg_list(episodes_url)
+        if jpg_list is not None and episode_title is not None:
+            jpg_list = [{'url': jpg, 'index': index} for index, jpg in enumerate(jpg_list, 1)]
+            task = Task(self.name, self.title, episode_title, jpg_list, self.headers)
             return task
 
     def get_episodes(self, data, branch_id):

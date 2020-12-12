@@ -16,8 +16,10 @@ from fake_useragent import UserAgent
 from retrying import retry
 import configparser
 
-
 # 封装get请求
+from compoent.task import Task
+
+
 @retry(stop_max_attempt_number=3, wait_fixed=2000)
 def get_html(url, headers, tor=False):
     try:
@@ -25,13 +27,6 @@ def get_html(url, headers, tor=False):
         proxies = None
         if tor:
             proxies = {'http': 'http://127.0.0.1:8118', 'https': 'http://127.0.0.1:8118'}
-        # if str(url).find('manhuadb') != -1:
-        #     pass
-        # else:
-        #     # user_agent = UserAgent().random
-        #     # if str(user_agent).find('mobile') != -1:
-        #     #     user_agent = UserAgent().random
-        #     headers['User-Agent'] = user_agent
         response = requests.get(url, headers=headers, timeout=15, proxies=proxies)
         response.raise_for_status()
         response.encoding = 'utf-8'
@@ -73,31 +68,30 @@ async def work(task: dict, semaphore, tor=False):
         return task
 
 
-def download(task: dict, semaphore=5, tor=False):
-    # 参数检查
-    if 'title' in task is False and 'episode' in task is False and 'jpg_url_list' in task is False and 'source' in task:
-        assert ValueError
+def download(task: Task, semaphore=5, tor=False):
+    title = task.title
+    name = task.name
+    episode_title = task.episode_title
+    jpg_list = task.jpg_list
+    headers = task.headers
 
-    title = task['title']
-    episode = task['episode']
-    jpg_url_list = task['jpg_url_list']
-    source = task['source']
-    headers = task['headers']
     folder = read_config('folder', 'path')
     loop = asyncio.get_event_loop()
     all_task = []
     semaphore = asyncio.Semaphore(semaphore)
 
-    for jpg_url in jpg_url_list:
-        url = str(jpg_url['url'])
-        if source == 'bilibili漫画':
-            print(url)
-        # suffix = '.' + url.split('.')[-1]
-        # 如果没找到文件夹，递归创建文件夹
-        if not os.path.exists('%s%s/%s/%s' % (folder, source, title, episode)):
-            os.makedirs('%s%s/%s/%s' % (folder, source, title, episode))
+    for jpg in jpg_list:
 
-        image_path = '%s%s/%s/%s/%s' % (folder, source, title, episode, str(jpg_url['page']) + '.jpg')
+        url = jpg['url']
+        index = jpg['index']
+
+        # 如果没找到文件夹，递归创建文件夹
+        manga_path = '%s%s/%s/%s' % (folder, name, title, episode_title)
+        if not os.path.exists(manga_path):
+            os.makedirs(manga_path)
+
+        # suffix
+        image_path = '%s%s/%s/%s/%s' % (folder, name, title, episode_title, str(index) + '.jpg')
 
         if not os.path.exists(image_path):
             task = {'url': url, 'path': image_path, 'headers': headers}
@@ -105,7 +99,7 @@ def download(task: dict, semaphore=5, tor=False):
 
     if len(all_task) > 0:
         # 进度条
-        with tqdm(total=len(all_task), desc='%s' % episode) as bar:
+        with tqdm(total=len(all_task), desc='%s' % episode_title) as bar:
             for task in all_task:
                 task.add_done_callback(lambda _: bar.update(1))
             loop.run_until_complete(asyncio.wait(all_task))
@@ -146,24 +140,21 @@ def repeat(failures, count=1):
         for failure in failures:
             config_path = str(read_config('folder', 'path'))
             array = str(failure[0]['path']).replace(config_path, '').split('/')
-            res = {
-                'title': array[1],
-                'episode': array[2],
-                'jpg_url_list': [],
-                'source': array[0],
-                'headers': failure[0]['headers']
-            }
+            title = array[1]
+            episode_title = array[2]
+            jpg_list = []
+            name = array[0]
+            headers = failure[0]['headers']
             for failure_task in failure:
                 url = failure_task['url']
                 path = str(failure_task['path'])
-                page = path.split('/')[-1].split('.')[0]
-                res['jpg_url_list'].append({'url': url, 'page': page})
-            tasks.append(res)
-
+                index = path.split('/')[-1].split('.')[0]
+                jpg_list.append({'url': url, 'index': index})
+            task = Task(name, title, episode_title, jpg_list, headers)
+            tasks.append(task)
         download_results = [download(task) for task in tasks]
         results = [result for result in download_results if result is not None and type(result) is list]
         if len(results) != 0:
-            print(results)
             return repeat(results, count + 1)
 
 

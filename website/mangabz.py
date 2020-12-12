@@ -9,6 +9,8 @@ import re
 from bs4 import BeautifulSoup
 from zhconv import convert
 
+from compoent.result import Result
+from compoent.task import Task
 from config.config import config
 from utlis.utils import get_html
 from website.manga import MangaParser
@@ -16,6 +18,7 @@ from website.manga import MangaParser
 
 class MangaBZ(MangaParser):
     image_url = 'http://image.mangabz.com/1/%s/%s/%s.jpg?cid=%s&key=%s&type=1'
+    # todo 随机
     user_agent = 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.66 Mobile Safari/537.36'
 
     def __init__(self, Config):
@@ -43,14 +46,7 @@ class MangaBZ(MangaParser):
             href = self.site + a.get('href')
             # 精确搜索，繁体转简体
             if convert(title, 'zh-cn').find(keywords) != -1:
-                result = {
-                    'title': title,
-                    'url': href,
-                    'author': '',
-                    'name': self.name,
-                    'color': self.color,
-                    'object': self
-                }
+                result = Result(title, href, None, self, self.color, self.name, None, None, None, None)
                 results.append(result)
         results = self.get_detail(results)
         return results
@@ -68,6 +64,7 @@ class MangaBZ(MangaParser):
         return soup.select('.detail-info-tip span')[0].select('a')[0].get_text()
 
     def get_branch(self, soup):
+        # todo branch缺省
         return {'1': '1'}
 
     def get_episodes(self, soup, branch_id):
@@ -99,14 +96,8 @@ class MangaBZ(MangaParser):
         jpg_list, episode_title = self.get_jpg_list(episode_url)
         headers = self.headers.copy()
         headers['Host'] = 'image.mangabz.com'
-        task = {
-            'title': self.title,
-            'episode': episode_title,
-            'jpg_url_list': [{'url': res, 'page': index} for index, res in enumerate(jpg_list, 1)],
-            'source': self.name,
-            'headers': headers
-        }
-
+        jpg_list = [{'url': jpg, 'index': index} for index, jpg in enumerate(jpg_list, 1)]
+        task = Task(self.name, self.title, episode_title, jpg_list, headers)
         return task
 
 

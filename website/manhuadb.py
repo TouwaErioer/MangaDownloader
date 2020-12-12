@@ -7,6 +7,9 @@ import re
 from bs4 import BeautifulSoup
 import base64
 import json
+
+from compoent.result import Result
+from compoent.task import Task
 from config import config
 from utlis.utils import get_html
 from website.manga import MangaParser
@@ -32,23 +35,16 @@ class ManhuaDB(MangaParser):
         url = self.search_url % keywords
         response = get_html(url, headers=self.headers, tor=self.tor)
         soup = BeautifulSoup(response.content, 'lxml')
-        results = soup.select('.comicbook-index')
-        result_list = []
-        for result in results:
-            item = result.select('a')[0]
-            author = result.select('.comic-author a')[0].get('title')
-            result_list.append(
-                {'title': item.get('title'),
-                 'url': self.site + item.get('href'),
-                 'author': author,
-                 'name': self.name,
-                 'color': self.color,
-                 'object': self
-                 },
-            )
-
-        result_list = self.get_detail(result_list)
-        return result_list
+        comic_book = soup.select('.comicbook-index')
+        results = []
+        for comic in comic_book:
+            item = comic.select('a')[0]
+            title = item.get('title')
+            author = comic.select('.comic-author a')[0].get('title')
+            href = self.site + item.get('href')
+            results.append(Result(title, href, author, self, self.color, self.name, None, None, None, None))
+        results = self.get_detail(results)
+        return results
 
     def get_soup(self, url):
         html = get_html(url, self.headers)
@@ -89,23 +85,12 @@ class ManhuaDB(MangaParser):
         return jpg_list, episode
 
     def works(self, episode_url):
-        result, episode = self.get_jpg_list(episode_url)
-        header = {
-            'Host': self.config['image-host'],
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; rv:63.0) Gecko/20100101 Firefox/63.0',
-        }
-        task = {
-            'title': self.title,
-            'episode': episode,
-            'jpg_url_list': [],
-            'source': self.name,
-            'headers': header
-        }
-        for index, res in enumerate(result, 1):
-            task['jpg_url_list'].append({'url': res, 'page': index})
+        jpg_list, episode_title = self.get_jpg_list(episode_url)
+        headers = self.headers.copy()
         # 设置Host
-        if len(task['jpg_url_list']) != 0:
-            task['headers']['Host'] = task['jpg_url_list'][0]['url'].split('/')[2]
+        headers['Host'] = jpg_list[0].split('/')[2]
+        jpg_list = [{'url': jpg, 'index': index} for index, jpg in enumerate(jpg_list, 1)]
+        task = Task(self.name, self.title, episode_title, jpg_list, headers)
         return task
 
 
