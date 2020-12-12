@@ -3,10 +3,10 @@
 # @Time    : 2020/12/1 12:54
 # @Author  : DHY
 # @File    : cli.py
-
 from compoent.common import enter_keywords, enter_index, blue_text, green_text, yellow_text
 from config.config import config
 from website.manga import MangaParser
+from website.mangabz import MangaBZ
 from website.manhuadb import ManhuaDB
 from website.manhuadui import ManhuaDui
 from website.wuqimh import WuQiMh
@@ -34,11 +34,14 @@ def get_manga(option):
         return WuQiMh(config)
     elif option == 'bilibili漫画':
         return BiliBili(config)
+    elif option == 'MangaBZ':
+        return MangaBZ(config)
     else:
         raise ValueError('找不到%s的类' % option)
 
 
 if __name__ == '__main__':
+
     # 生成config对象，检查配置文件
     config = config()
 

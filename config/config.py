@@ -20,12 +20,14 @@ class config:
             self.manhuadui = dict(config_parser.items('manhuadui'))
             self.wuqimh = dict(config_parser.items('wuqimh'))
             self.bilibili = dict(config_parser.items('bilibili'))
+            self.mangabz = dict(config_parser.items('mangabz'))
+            self.download['section'] = 'download'
+            self.folder['section'] = 'folder'
             self.wuqimh['section'] = 'wuqimh'
             self.manhuadui['section'] = 'manhuadui'
             self.manhuadb['section'] = 'manhuadb'
-            self.download['section'] = 'download'
-            self.folder['section'] = 'folder'
             self.bilibili['section'] = 'bilibili'
+            self.mangabz['section'] = 'mangabz'
             self.test = dict(config_parser.items('test'))
             self.check_dicts([self.folder, self.download, self.manhuadb, self.manhuadui, self.wuqimh, self.bilibili])
         except Exception as e:
@@ -88,7 +90,7 @@ class config:
                     raise ValueError('%s-%s参数不能为空' % (section_name, str(item[0])))
 
     def select_site(self):
-        return [site['name'] for site in [self.manhuadb, self.manhuadui, self.wuqimh, self.bilibili] if
+        return [site['name'] for site in [self.manhuadb, self.manhuadui, self.wuqimh, self.bilibili, self.mangabz] if
                 int(site['search'])]
 
 

@@ -18,20 +18,26 @@ import configparser
 
 
 # 封装get请求
-@retry(stop_max_attempt_number=2, wait_fixed=1000)
+@retry(stop_max_attempt_number=3, wait_fixed=2000)
 def get_html(url, headers, tor=False):
-    print(url)
-    proxies = None
-    if tor:
-        proxies = {'http': 'http://127.0.0.1:8118', 'https': 'http://127.0.0.1:8118'}
-    if str(url).find('manhuadb') != -1:
-        pass
-    else:
-        headers['User-Agent'] = UserAgent().random
-    response = requests.get(url, headers=headers, timeout=5, proxies=proxies)
-    response.raise_for_status()
-    response.encoding = 'utf-8'
-    return response
+    try:
+        print(url)
+        proxies = None
+        if tor:
+            proxies = {'http': 'http://127.0.0.1:8118', 'https': 'http://127.0.0.1:8118'}
+        # if str(url).find('manhuadb') != -1:
+        #     pass
+        # else:
+        #     # user_agent = UserAgent().random
+        #     # if str(user_agent).find('mobile') != -1:
+        #     #     user_agent = UserAgent().random
+        #     headers['User-Agent'] = user_agent
+        response = requests.get(url, headers=headers, timeout=15, proxies=proxies)
+        response.raise_for_status()
+        response.encoding = 'utf-8'
+        return response
+    except Exception as e:
+        print(e, url, headers)
 
 
 # 异步下载图片
@@ -60,7 +66,8 @@ async def work(task: dict, semaphore, tor=False):
                 else:
                     # 资源不存在
                     episode = str(task['path']).split('/')[-2]
-                    return str('\33[1;32m%s\033[0m' % ('%s 资源不存在' % episode))
+                    print(task['url'])
+                    return '%s' % episode
     except Exception:
         # 连接异常，失败任务
         return task
@@ -154,8 +161,9 @@ def repeat(failures, count=1):
             tasks.append(res)
 
         download_results = [download(task) for task in tasks]
-        results = [result for result in download_results if result is not None]
+        results = [result for result in download_results if result is not None and type(result) is list]
         if len(results) != 0:
+            print(results)
             return repeat(results, count + 1)
 
 

@@ -48,6 +48,7 @@ class ManhuaDui(MangaParser):
         return result_list
 
     def get_soup(self, url):
+        self.headers['User-Agent'] = UserAgent().random
         html = get_html(url, self.headers)
         return BeautifulSoup(html.content, 'lxml'), html.elapsed.total_seconds()
 

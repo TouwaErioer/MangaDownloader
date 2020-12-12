@@ -80,15 +80,18 @@ class MangaParser(metaclass=ABCMeta):
             loop.close()
             contents = [res.result() for res in results if res.result() is not None]
             if type(contents[0][0]) is dict:
-                details = [{'url': content[1], 'soup': content[0], 'response_time': content[2]} for content in contents]
+                details = [
+                    {'url': content[1], 'soup': content[0], 'response_time': content[2], 'name': tasks[0]['name']} for
+                    content in contents]
             else:
-                details = [{'url': content[1], 'soup': BeautifulSoup(content[0], 'lxml'), 'response_time': content[2]}
+                details = [{'url': content[1], 'soup': BeautifulSoup(content[0], 'lxml'), 'response_time': content[2],
+                            'name': tasks[0]['name']}
                            for content in contents]
             return details
 
     def parser_detail(self, details):
         if details is not None and len(details) != 0:
-            result = []
+            results = []
             for detail in details:
                 soup = detail['soup']
                 score = detail['response_time']
@@ -97,9 +100,12 @@ class MangaParser(metaclass=ABCMeta):
                 branches = 0 if ban else len(branch)
                 branch_id = 0 if ban else branch.get(list(branch.keys())[0])
                 episodes = 0 if ban else len(self.get_episodes(soup, branch_id))
-                result.append(
-                    {'url': detail['url'], 'ban': ban, 'branches': branches, 'episodes': episodes, 'speed': score})
-            return result
+                result = {'url': detail['url'], 'ban': ban, 'branches': branches, 'episodes': episodes, 'speed': score}
+                if detail['name'] == 'MangaBZ':
+                    author = self.get_author(soup)
+                    result['author'] = author
+                results.append(result)
+            return results
 
     def get_detail(self, result_list):
         soups = self.get_search_soups(result_list)

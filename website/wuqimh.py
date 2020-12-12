@@ -61,6 +61,7 @@ class WuQiMh(MangaParser):
         return result_list
 
     def get_soup(self, url):
+        self.headers['User-Agent'] = UserAgent().random
         html = get_html(url, self.headers)
         return BeautifulSoup(html.content, 'lxml'), html.elapsed.total_seconds()
 
@@ -83,6 +84,8 @@ class WuQiMh(MangaParser):
         js = re.findall('eval(.*?)\\n', html.text)[0]
         episode = re.findall('<h2>(.*?)</h2>', html.text)[0]
         # js2py运行js获取图片列表
+
+        print(js)
         code = js2py.eval_js(js)
         jpg_list = str(re.findall("'fs':\\s*(\\[.*?\\])", code)[0])[1:-1].replace("'", '').split(',')
         jpg_list = [self.image_site + jpg for jpg in jpg_list]

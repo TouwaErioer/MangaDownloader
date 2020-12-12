@@ -65,6 +65,7 @@ class BiliBili(MangaParser):
 
     # 获取data
     def get_soup(self, comic_id):
+        self.headers['User-Agent'] = UserAgent().random
         self.headers['referer'] = 'https://manga.bilibili.com/detail/mc%d?from=manga_search' % int(comic_id)
         response = requests.post(self.ComicDetail_API, data={'comic_id': comic_id}, headers=self.headers)
         result = response.json()
@@ -116,8 +117,7 @@ class BiliBili(MangaParser):
 
             return jpg_list, ep_title
         else:
-            print('%s https://manga.bilibili.com/mc%d/%d307985' % (result['msg'], comic_id, ep_id))
-            return None
+            raise Exception('%s https://manga.bilibili.com/mc%d/%d' % (result['msg'], int(comic_id), int(ep_id)))
 
     @staticmethod
     def generate_hash_key(season_id, episode_id):
