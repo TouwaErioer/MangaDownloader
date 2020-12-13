@@ -3,7 +3,7 @@
 # @Time    : 2020/12/1 10:05
 # @Author  : DHY
 # @File    : manhuadui.py
-
+from component.color import blue_text
 from component.result import Result
 from component.task import Task
 from website.manga import MangaParser
@@ -17,14 +17,11 @@ from fake_useragent import UserAgent
 class ManhuaDui(MangaParser):
 
     def __init__(self, Config):
-        self.tor = bool(int(Config.download['tor']))
         self.config = Config.manhuadui
-        self.site = self.config['site']
-        self.name = self.config['name']
+        super().__init__(self.config)
         self.test = Config.test[self.name]
-        self.color = '\33[1;34m%s\033[0m'
+        self.color = blue_text
         self.image_site = self.config['image-site']
-        self.search_url = self.config['search-url']
         self.headers = {
             'User-Agent': UserAgent().random
         }

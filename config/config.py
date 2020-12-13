@@ -76,7 +76,7 @@ class config:
                     else:
                         raise ValueError('%s参数错误' % section_name)
                 elif section_name == 'bilibili':
-                    if 'cookie' in section and 'search-api' in section and 'comic-detail-api' in section \
+                    if 'cookie' in section and 'search-url' in section and 'comic-detail-api' in section \
                             and 'index-api' in section and 'image-token-api' in section:
                         pass
                     else:

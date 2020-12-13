@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 import base64
 import json
 
+from component.color import yellow_text
 from component.result import Result
 from component.task import Task
 from config import config
@@ -18,14 +19,10 @@ from website.manga import MangaParser
 class ManhuaDB(MangaParser):
 
     def __init__(self, Config):
-        self.tor = bool(int(Config.download['tor']))
         self.config = Config.manhuadb
-        self.site = self.config['site']
-        self.host = self.config['host']
-        self.name = self.config['name']
+        super().__init__(self.config)
         self.test = Config.test[self.name]
-        self.color = '\33[1;33m%s\033[0m'
-        self.search_url = self.config['search-url']
+        self.color = yellow_text
         self.headers = {
             'Host': self.host,
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; rv:63.0) Gecko/20100101 Firefox/63.0',

@@ -11,6 +11,7 @@ import io
 import json
 import zipfile
 
+from component.color import pink_text
 from component.result import Result
 from component.task import Task
 from website.manga import MangaParser
@@ -21,16 +22,13 @@ from utlis.network import work_speed
 class BiliBili(MangaParser):
 
     def __init__(self, Config):
-        self.tor = bool(int(Config.download['tor']))
         self.config = Config.bilibili
-        self.color = '\33[1;35m%s\033[0m'
-        self.name = self.config['name']
-        self.SEARCH_API = self.config['search-api']
+        super().__init__(self.config)
+
+        self.color = pink_text
         self.ComicDetail_API = self.config['comic-detail-api']
         self.Index_API = self.config['index-api']
         self.ImageToken = self.config['image-token-api']
-        self.host = self.config['host']
-        self.test = Config.test[self.name]
         self.cookie = enter_cookie(self.config)
         self.headers = {
             'origin': self.host,
@@ -41,7 +39,7 @@ class BiliBili(MangaParser):
         enter_author = enter_author if enter_author is not None else ''
         self.headers['referer'] = 'https://manga.bilibili.com/search?from=manga_detail&keyword='
         data = {'key_word': keywords, 'page_num': 1, 'page_size': 20}
-        response = requests.post(self.SEARCH_API, data=data, headers=self.headers)
+        response = requests.post(self.search_url, data=data, headers=self.headers)
         result = response.json()['data']['list']
         results = []
         for res in result:

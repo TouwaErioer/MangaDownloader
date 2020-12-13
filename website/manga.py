@@ -9,13 +9,20 @@ from abc import ABCMeta, abstractmethod
 from bs4 import BeautifulSoup
 from component.enter import enter_branch, enter_range
 from concurrent.futures import (ALL_COMPLETED, ThreadPoolExecutor, wait)
+
+from utlis.config import read_config
 from utlis.download import download
 from utlis.network import get_detail
 
 
 class MangaParser(metaclass=ABCMeta):
 
-    def __init__(self):
+    def __init__(self, config):
+        self.name = config['name']
+        self.site = config['site']
+        self.host = config['host']
+        self.search_url = config['search-url']
+        self.tor = bool(int(read_config('download', 'tor')))
         self.url = None
         self.title = None
 

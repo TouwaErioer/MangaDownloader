@@ -3,12 +3,12 @@
 # @Time    : 2020/12/11 15:00
 # @Author  : DHY
 # @File    : mangabz.py
-import asyncio
 import re
 
 from bs4 import BeautifulSoup
 from zhconv import convert
 
+from component.color import cyan_blue_text
 from component.result import Result
 from component.task import Task
 from config.config import config
@@ -23,14 +23,9 @@ class MangaBZ(MangaParser):
     user_agent = 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.66 Mobile Safari/537.36'
 
     def __init__(self, Config):
-        self.tor = bool(int(Config.download['tor']))
         self.config = Config.mangabz
-        self.site = self.config['site']
-        self.host = self.config['host']
-        self.name = self.config['name']
-        self.color = '\33[1;36m%s\033[0m'
-        self.search_url = self.config['search-url']
-        self.loop = asyncio.new_event_loop()
+        super().__init__(self.config)
+        self.color = cyan_blue_text
         self.headers = {
             'Host': self.host,
             'Referer': self.site,

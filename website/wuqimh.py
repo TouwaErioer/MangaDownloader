@@ -6,6 +6,7 @@
 import js2py
 import re
 
+from component.color import green_text
 from component.result import Result
 from component.task import Task
 from website.manga import MangaParser
@@ -18,15 +19,11 @@ from concurrent.futures import (ALL_COMPLETED, ThreadPoolExecutor, wait)
 class WuQiMh(MangaParser):
 
     def __init__(self, Config):
-        self.tor = bool(int(Config.download['tor']))
         self.config = Config.wuqimh
-        self.site = self.config['site']
-        self.name = self.config['name']
-        self.host = self.config['host']
+        super().__init__(self.config)
         self.test = Config.test[self.name]
-        self.color = '\33[1;32m%s\033[0m'
+        self.color = green_text
         self.image_site = self.config['image-site']
-        self.search_url = self.config['search-url']
         self.headers = {
             'Host': self.host,
             'Referer': self.host,
