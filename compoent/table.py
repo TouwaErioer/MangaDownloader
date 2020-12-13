@@ -8,7 +8,7 @@ from pathlib import Path
 
 from prettytable import PrettyTable
 
-from compoent.common import red_text, green_text
+from compoent.color import red_text, green_text
 
 
 def show(results, config):

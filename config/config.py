@@ -6,7 +6,7 @@
 import configparser
 import os
 
-from compoent.common import red_text
+from compoent.color import red_text
 
 
 class config:

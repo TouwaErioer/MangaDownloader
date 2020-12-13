@@ -12,7 +12,7 @@ from zhconv import convert
 from compoent.result import Result
 from compoent.task import Task
 from config.config import config
-from utlis.utils import get_html
+from utlis.network import get_html
 from website.manga import MangaParser
 
 

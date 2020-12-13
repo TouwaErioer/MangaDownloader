@@ -14,8 +14,8 @@ import zipfile
 from compoent.result import Result
 from compoent.task import Task
 from website.manga import MangaParser
-from compoent.common import enter_cookie
-from utlis.utils import work_speed
+from compoent.enter import enter_cookie
+from utlis.network import work_speed
 
 
 class BiliBili(MangaParser):

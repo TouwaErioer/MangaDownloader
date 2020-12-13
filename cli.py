@@ -3,7 +3,8 @@
 # @Time    : 2020/12/1 12:54
 # @Author  : DHY
 # @File    : cli.py
-from compoent.common import enter_keywords, enter_index, blue_text, green_text, yellow_text
+from compoent.color import blue_text, green_text, yellow_text
+from compoent.enter import enter_keywords, enter_index
 from config.config import config
 from website.manga import MangaParser
 from website.mangabz import MangaBZ
@@ -11,9 +12,9 @@ from website.manhuadb import ManhuaDB
 from website.manhuadui import ManhuaDui
 from website.wuqimh import WuQiMh
 from website.bilibili import BiliBili
-from run.table import show
-from compoent.file_tool import get_file_total
-from utlis.utils import repeat, make_zip
+from compoent.table import show
+from utlis.repeat import repeat
+from utlis.file import make_zip, get_file_total
 import shutil
 from concurrent.futures import (ALL_COMPLETED, ThreadPoolExecutor, wait)
 

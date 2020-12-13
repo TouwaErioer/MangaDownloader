@@ -9,7 +9,7 @@ import re
 from compoent.result import Result
 from compoent.task import Task
 from website.manga import MangaParser
-from utlis.utils import get_html
+from utlis.network import get_html
 from fake_useragent import UserAgent
 from bs4 import BeautifulSoup
 from concurrent.futures import (ALL_COMPLETED, ThreadPoolExecutor, wait)

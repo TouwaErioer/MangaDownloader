@@ -7,9 +7,10 @@ import asyncio
 import time
 from abc import ABCMeta, abstractmethod
 from bs4 import BeautifulSoup
-from compoent.common import enter_branch, enter_range
+from compoent.enter import enter_branch, enter_range
 from concurrent.futures import (ALL_COMPLETED, ThreadPoolExecutor, wait)
-from utlis.utils import download, get_detail
+from utlis.download import download
+from utlis.network import get_detail
 
 
 class MangaParser(metaclass=ABCMeta):

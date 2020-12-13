@@ -7,7 +7,8 @@
 from compoent.result import Result
 from compoent.task import Task
 from website.manga import MangaParser
-from utlis.utils import get_html, aes_decrypt
+from utlis.network import get_html
+from utlis.decrypt import aes_decrypt
 import re
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
