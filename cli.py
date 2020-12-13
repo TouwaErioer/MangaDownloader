@@ -5,8 +5,9 @@
 # @File    : cli.py
 
 from component.color import blue_text, green_text, yellow_text
-from component.enter import enter_keywords, enter_index
+from component.enter import enter_keywords, enter_index, enter_proxy, check_speed
 from config.config import config
+from utlis.network import get_test
 from website.manga import MangaParser
 from website.mangabz import MangaBZ
 from website.manhuadb import ManhuaDB
@@ -67,6 +68,12 @@ if __name__ == '__main__':
         if result is not None:
             results.extend(result)
 
+    # 获取测试结果
+    tests = get_test()
+
+    for result in results:
+        result.update_speed(tests)
+
     if len(results) != 0:
 
         # 显示表
@@ -81,6 +88,8 @@ if __name__ == '__main__':
         ban = selected.ban
         title = selected.title
         name = selected.name
+        speed = selected.speed
+        check_speed(speed)
         path = config.folder['path']
         source_dir = '%s%s/%s' % (path, name, title)
         zip_name = '%s%s/%s.zip' % (path, name, title)

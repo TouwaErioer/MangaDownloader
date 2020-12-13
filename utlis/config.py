@@ -9,7 +9,7 @@ import configparser
 def read_config(section, item):
     try:
         config = configparser.RawConfigParser()
-        config.read('config.ini', encoding='utf-8')
+        config.read('config.ini')
         if item is None:
             sections = config.sections()
             index = sections.index(section)
@@ -22,8 +22,25 @@ def read_config(section, item):
 def write_config(section, item, value):
     try:
         config = configparser.ConfigParser()
-        config.read('config.ini', encoding='utf-8')
+        config.read('config.ini')
         config.set(section, item, value)
-        config.write(open('../config.ini', 'w'))
+        with open('config.ini', 'w') as f:
+            config.write(f)
+    except Exception as e:
+        print(e)
+
+
+def read_test():
+    try:
+        config = configparser.RawConfigParser()
+        config.read('test.ini', encoding='utf-8')
+        sections = config.sections()
+        tests = []
+        for section in sections:
+            section = dict(config.items(section))
+            for key, value in section.items():
+                if key.find('test') != -1:
+                    tests.append({'name': section['name'], 'url': value})
+        return tests
     except Exception as e:
         print(e)

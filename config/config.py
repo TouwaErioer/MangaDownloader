@@ -13,7 +13,7 @@ class config:
     def __init__(self):
         try:
             config_parser = configparser.RawConfigParser()
-            config_parser.read('config.ini', encoding='utf-8')
+            config_parser.read('config.ini')
             self.folder = dict(config_parser.items('folder'))
             self.download = dict(config_parser.items('download'))
             self.manhuadb = dict(config_parser.items('manhuadb'))

@@ -33,3 +33,8 @@ class Result:
                 self.speed = value
             elif key == 'author' and self.author is None:
                 self.author = value
+
+    def update_speed(self, tests: dict):
+        for key, value in tests.items():
+            if key == self.name:
+                self.speed = '%.2f' % float((float(self.speed) + float(value)) / 2)

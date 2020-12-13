@@ -58,10 +58,9 @@ def show_title(title):
 
 
 def show_speed(speed):
-    if speed is not None:
-        if float(speed) < 1:
-            return green_text % speed
-        else:
-            return red_text % speed
-    else:
+    if float(speed) < 1:
+        return green_text % speed
+    elif 1 < float(speed) < 2.5:
+        return red_text % speed
+    elif float(speed) >= 2.5:
         return red_text % '404'

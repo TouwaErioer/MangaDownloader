@@ -4,15 +4,19 @@
 # @Author  : DHY
 # @File    : network.py
 import asyncio
+import socket
 import time
 
 import aiohttp
 import requests
+import socks
 from fake_useragent import UserAgent
 from retrying import retry
 
-
 # 封装get请求
+from utlis.config import read_test
+
+
 @retry(stop_max_attempt_number=3, wait_fixed=2000)
 def get_html(url, headers, tor=False):
     try:
@@ -91,12 +95,18 @@ async def get_detail(task, tor=False):
 
 # 测速
 async def work_speed(task, tor=False):
-    async with asyncio.Semaphore(500):
-        proxies = {'http': 'http://127.0.0.1:8118', 'https': 'http://127.0.0.1:8118'} if tor else None
-        async with aiohttp.ClientSession() as session:
-            session.proxies = proxies
-            response = await session.get(task['url'], headers=task['headers'], timeout=5)
-            await response.read()
+    try:
+        async with asyncio.Semaphore(500):
+            proxies = {'http': 'http://127.0.0.1:8118', 'https': 'http://127.0.0.1:8118'} if tor else None
+            async with aiohttp.ClientSession() as session:
+                start = time.time()
+                session.proxies = proxies
+                response = await session.get(task['url'], timeout=3)
+                await response.read()
+                response_time = '%.2f' % float(time.time() - start)
+                return task['name'], response_time
+    except asyncio.exceptions.TimeoutError:
+        return task['name'], 3
 
 
 def speed(url, headers):
@@ -106,3 +116,31 @@ def speed(url, headers):
             return '%.2f' % response.elapsed.total_seconds()
     except Exception:
         pass
+
+
+def get_test():
+    result = {}
+    tests = read_test()
+    loop = asyncio.get_event_loop()
+    tasks = [asyncio.ensure_future(work_speed(test)) for test in tests]
+    loop.run_until_complete(asyncio.wait(tasks))
+    for task in tasks:
+        name, response_time = task.result()
+        if name in result:
+            result[name] = float(result[name]) + float(response_time)
+        else:
+            result[name] = response_time
+    for key, value in result.items():
+        result[key] = '%.2f' % float(value / 5)
+    return result
+
+
+def check_proxy(host, port):
+    socks.set_default_proxy(socks.SOCKS5, host, port)
+    socket.socket = socks.socksocket
+
+    try:
+        requests.get('https://api.ipify.org/')
+        return True
+    except requests.exceptions.ConnectionError:
+        return False
