@@ -6,8 +6,8 @@
 import js2py
 import re
 
-from compoent.result import Result
-from compoent.task import Task
+from component.result import Result
+from component.task import Task
 from website.manga import MangaParser
 from utlis.network import get_html
 from fake_useragent import UserAgent
@@ -33,7 +33,8 @@ class WuQiMh(MangaParser):
             'User-Agent': UserAgent().random
         }
 
-    def search(self, keywords, is_recursion=False, detail=True):
+    def search(self, keywords, enter_author, is_recursion=False, detail=True):
+        enter_author = enter_author if enter_author is not None else ''
         url = self.search_url % keywords
         html = get_html(url, self.headers, tor=self.tor)
         soup = BeautifulSoup(html.content, 'lxml')
@@ -45,7 +46,8 @@ class WuQiMh(MangaParser):
             title = a.get('title')
             href = self.site + a.get('href')
             author = book.select('.tags')[2].select('a')[0].get_text()
-            results.append(Result(title, href, author, self, self.color, self.name, None, None, None, None))
+            if title.find(keywords) != -1 and author.find(enter_author) != -1:
+                results.append(Result(title, href, author, self, self.color, self.name, None, None, None, None))
         # 页数大于1，线程池获取第二页以后的数据
         if page_count > 1 and is_recursion is not True:
             executor = ThreadPoolExecutor(max_workers=5)

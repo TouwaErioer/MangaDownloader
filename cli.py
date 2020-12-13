@@ -3,8 +3,9 @@
 # @Time    : 2020/12/1 12:54
 # @Author  : DHY
 # @File    : cli.py
-from compoent.color import blue_text, green_text, yellow_text
-from compoent.enter import enter_keywords, enter_index
+
+from component.color import blue_text, green_text, yellow_text
+from component.enter import enter_keywords, enter_index
 from config.config import config
 from website.manga import MangaParser
 from website.mangabz import MangaBZ
@@ -12,16 +13,16 @@ from website.manhuadb import ManhuaDB
 from website.manhuadui import ManhuaDui
 from website.wuqimh import WuQiMh
 from website.bilibili import BiliBili
-from compoent.table import show
+from component.table import show
 from utlis.repeat import repeat
 from utlis.file import make_zip, get_file_total
 import shutil
 from concurrent.futures import (ALL_COMPLETED, ThreadPoolExecutor, wait)
 
 
-def work(parser, args):
+def work(parser):
     if isinstance(parser, MangaParser):
-        return parser.search(args)
+        return parser.search(keywords, author)
     else:
         raise TypeError('%s不属于%s' % (parser, MangaParser))
 
@@ -56,7 +57,7 @@ if __name__ == '__main__':
 
     # 线程池获取搜索结果
     executor = ThreadPoolExecutor(max_workers=5)
-    all_task = [executor.submit(work, parser, keywords) for parser in [get_manga(option) for option in options]]
+    all_task = [executor.submit(work, parser) for parser in [get_manga(option) for option in options]]
     wait(all_task, return_when=ALL_COMPLETED)
 
     # 合并搜索结果
@@ -65,10 +66,6 @@ if __name__ == '__main__':
         result = task.result()
         if result is not None:
             results.extend(result)
-
-    # 筛选author
-    if author is not None:
-        results = [res for res in results if res['author'].find(author) != -1]
 
     if len(results) != 0:
 

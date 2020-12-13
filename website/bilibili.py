@@ -11,10 +11,10 @@ import io
 import json
 import zipfile
 
-from compoent.result import Result
-from compoent.task import Task
+from component.result import Result
+from component.task import Task
 from website.manga import MangaParser
-from compoent.enter import enter_cookie
+from component.enter import enter_cookie
 from utlis.network import work_speed
 
 
@@ -37,7 +37,8 @@ class BiliBili(MangaParser):
             'User-Agent': UserAgent().random
         }
 
-    def search(self, keywords):
+    def search(self, keywords, enter_author):
+        enter_author = enter_author if enter_author is not None else ''
         self.headers['referer'] = 'https://manga.bilibili.com/search?from=manga_detail&keyword='
         data = {'key_word': keywords, 'page_num': 1, 'page_size': 20}
         response = requests.post(self.SEARCH_API, data=data, headers=self.headers)
@@ -47,8 +48,9 @@ class BiliBili(MangaParser):
             title = str(res['title']).replace('<em class=\"keyword\">', '').replace('</em>', '')
             href = str(res['id'])
             author = res['author_name'][0].replace('<em class=\"keyword\">', '').replace('</em>', '')
-            results.append(Result(title, href, author, self, self.color, self.name, False, 1, None, None))
-            results = self.get_detail(results)
+            if title.find(keywords) != -1 or author.find(enter_author) != -1:
+                results.append(Result(title, href, author, self, self.color, self.name, False, 1, None, None))
+        results = self.get_detail(results)
         return results
 
     # 获取第一话图片的速度

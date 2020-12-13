@@ -9,14 +9,15 @@ import re
 from bs4 import BeautifulSoup
 from zhconv import convert
 
-from compoent.result import Result
-from compoent.task import Task
+from component.result import Result
+from component.task import Task
 from config.config import config
 from utlis.network import get_html
 from website.manga import MangaParser
 
 
 class MangaBZ(MangaParser):
+
     image_url = 'http://image.mangabz.com/1/%s/%s/%s.jpg?cid=%s&key=%s&type=1'
     # todo 随机
     user_agent = 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.66 Mobile Safari/537.36'
@@ -35,7 +36,8 @@ class MangaBZ(MangaParser):
             'Referer': self.site,
         }
 
-    def search(self, keywords):
+    def search(self, keywords, enter_author):
+        enter_author = enter_author if enter_author is not None else ''
         response = get_html(self.search_url % keywords, headers=self.headers)
         soup = BeautifulSoup(response.content, 'lxml')
         results = []
@@ -49,6 +51,7 @@ class MangaBZ(MangaParser):
                 result = Result(title, href, None, self, self.color, self.name, None, None, None, None)
                 results.append(result)
         results = self.get_detail(results)
+        results = [result for result in results if result.author.find(enter_author) != -1]
         return results
 
     def get_soup(self, url):

@@ -8,8 +8,8 @@ from bs4 import BeautifulSoup
 import base64
 import json
 
-from compoent.result import Result
-from compoent.task import Task
+from component.result import Result
+from component.task import Task
 from config import config
 from utlis.network import get_html
 from website.manga import MangaParser
@@ -31,7 +31,8 @@ class ManhuaDB(MangaParser):
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; rv:63.0) Gecko/20100101 Firefox/63.0',
         }
 
-    def search(self, keywords: str):
+    def search(self, keywords: str, enter_author):
+        enter_author = enter_author if enter_author is not None else ''
         url = self.search_url % keywords
         response = get_html(url, headers=self.headers, tor=self.tor)
         soup = BeautifulSoup(response.content, 'lxml')
@@ -42,7 +43,8 @@ class ManhuaDB(MangaParser):
             title = item.get('title')
             author = comic.select('.comic-author a')[0].get('title')
             href = self.site + item.get('href')
-            results.append(Result(title, href, author, self, self.color, self.name, None, None, None, None))
+            if title.find(keywords) != -1 and author.find(enter_author) != -1:
+                results.append(Result(title, href, author, self, self.color, self.name, None, None, None, None))
         results = self.get_detail(results)
         return results
 

@@ -7,7 +7,7 @@ import asyncio
 import time
 from abc import ABCMeta, abstractmethod
 from bs4 import BeautifulSoup
-from compoent.enter import enter_branch, enter_range
+from component.enter import enter_branch, enter_range
 from concurrent.futures import (ALL_COMPLETED, ThreadPoolExecutor, wait)
 from utlis.download import download
 from utlis.network import get_detail

@@ -5,8 +5,8 @@
 # @File    : enter.py
 from prettytable import PrettyTable
 
-from compoent.color import red_text
-from compoent.help import print_help
+from component.color import red_text
+from component.help import print_help
 from utlis.config import write_config
 
 

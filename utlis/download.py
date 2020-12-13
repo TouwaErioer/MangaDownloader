@@ -7,7 +7,7 @@ import asyncio
 import os
 from tqdm import tqdm
 
-from compoent.task import Task
+from component.task import Task
 from utlis.config import read_config
 from utlis.network import download_image
 

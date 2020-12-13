@@ -4,8 +4,8 @@
 # @Author  : DHY
 # @File    : manhuadui.py
 
-from compoent.result import Result
-from compoent.task import Task
+from component.result import Result
+from component.task import Task
 from website.manga import MangaParser
 from utlis.network import get_html
 from utlis.decrypt import aes_decrypt
@@ -30,7 +30,8 @@ class ManhuaDui(MangaParser):
         }
 
     # 搜索
-    def search(self, keywords: str, detail=True):
+    def search(self, keywords: str, enter_author, detail=True):
+        enter_author = enter_author if enter_author is not None else ''
         url = self.search_url % keywords
         search_response = get_html(url, headers=self.headers, tor=self.tor)
         search_soup = BeautifulSoup(search_response.content, 'lxml')
@@ -41,7 +42,8 @@ class ManhuaDui(MangaParser):
             author = comic.select('.auth')[0].get_text()
             href = a.get('href')
             a = comic.select('a')[1]
-            results.append(Result(title, href, author, self, self.color, self.name, None, None, None, None))
+            if title.find(keywords) != -1 and author.find(enter_author) != -1:
+                results.append(Result(title, href, author, self, self.color, self.name, None, None, None, None))
         results = self.get_detail(results)
         return results
 

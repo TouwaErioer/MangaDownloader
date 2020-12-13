@@ -3,7 +3,7 @@
 # @Time    : 2020/12/13 11:20
 # @Author  : DHY
 # @File    : help.py
-from compoent.color import green_text
+from component.color import green_text
 
 
 def print_help(enter_type):

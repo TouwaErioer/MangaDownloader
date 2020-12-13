@@ -6,7 +6,7 @@
 import configparser
 import os
 
-from compoent.color import red_text
+from component.color import red_text
 
 
 class config:

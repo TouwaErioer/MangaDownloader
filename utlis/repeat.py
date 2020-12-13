@@ -5,7 +5,7 @@
 # @File    : repeat.py
 
 # 重试，直到没有失败任务
-from compoent.task import Task
+from component.task import Task
 from utlis.download import read_config, download
 
 
