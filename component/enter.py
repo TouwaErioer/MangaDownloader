@@ -8,7 +8,7 @@ import re
 from prettytable import PrettyTable
 from component.color import red_text, yellow_text
 from component.help import print_help
-from utlis.config import write_config, read_config
+from utlis.config import write_config, read_config, get_proxy
 from utlis.network import check_proxy
 
 
@@ -88,7 +88,7 @@ def enter_command():
 
 def enter_keywords():
     while True:
-        keywords = input('请输入关键词> ') or '辉夜'
+        keywords = input('请输入关键词> ') or '电锯人'
         if keywords.find(':') != -1:
             value = keywords.split(':')
             keywords = value[0]
@@ -133,7 +133,7 @@ def enter_index(results):
 
 
 def check_speed(speed):
-    if float(speed) > 1:
+    if float(speed) > 1 and get_proxy() is None:
         tip = yellow_text % ('%.2f秒/张' % float(speed))
         is_proxy = input('测试速度大约为%s，建议使用代理(y/n)> ' % tip) or 'y'
         if is_proxy != 'n':

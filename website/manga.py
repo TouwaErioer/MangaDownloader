@@ -159,7 +159,7 @@ class MangaParser(metaclass=ABCMeta):
         not_exist_task = []
         start = time.time()
         for work in all_task:
-            result = download(work.result(), proxy=self.proxy, semaphore=self.semaphore)
+            result = download(work.result(), self.proxy, int(self.semaphore))
             if type(result) is list:
                 failure_list.append(result)
             elif type(result) is str:

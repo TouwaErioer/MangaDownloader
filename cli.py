@@ -3,7 +3,6 @@
 # @Time    : 2020/12/1 12:54
 # @Author  : DHY
 # @File    : cli.py
-import asyncio
 import time
 
 from progress.spinner import Spinner
@@ -11,7 +10,7 @@ from progress.spinner import Spinner
 from component.color import blue_text, green_text, yellow_text
 from component.enter import enter_keywords, enter_index, check_speed
 from config.config import config
-from utlis.network import get_test, async_get
+from utlis.network import get_test
 from website.manga import MangaParser
 from website.mangabz import MangaBZ
 from website.manhuadb import ManhuaDB

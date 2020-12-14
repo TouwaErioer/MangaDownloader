@@ -9,7 +9,7 @@ import aiohttp
 from aiohttp_socks import ProxyType, ProxyConnector
 from retrying import retry
 
-from utlis.config import read_test
+from utlis.config import read_test, write_score
 
 
 async def work_speed(url):
@@ -26,10 +26,5 @@ async def work_speed(url):
 
 
 if __name__ == '__main__':
-    tests = read_test()
-    # asyncio.set_event_loop(asyncio.SelectorEventLoop())
-    loop = asyncio.get_event_loop()
-    tasks = []
-    for test in tests:
-        tasks.append(asyncio.ensure_future(work_speed(test['url'])))
-    loop.run_until_complete(asyncio.wait(tasks))
+    result = {'漫画db': '1.96', '57漫画': '1.68', 'bilibili漫画': '0.10', 'MangaBZ': '1.06'}
+    write_score(result)

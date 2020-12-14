@@ -52,3 +52,42 @@ def get_proxy():
         return None
     else:
         return proxy
+
+
+def check_test():
+    config = configparser.RawConfigParser()
+    config.read('config.ini')
+    manhuadb_test = config.get('manhuadb', 'test')
+    wuqimh_test = config.get('wuqimh', 'test')
+    bilibili_test = config.get('bilibili', 'test')
+    mangabz_test = config.get('mangabz', 'test')
+    if manhuadb_test == '' or wuqimh_test == '' or bilibili_test == '' or mangabz_test == '':
+        return False
+    else:
+        return True
+
+
+def read_score():
+    config = configparser.RawConfigParser()
+    config.read('config.ini')
+    manhuadb_test = config.get('manhuadb', 'test')
+    wuqimh_test = config.get('wuqimh', 'test')
+    bilibili_test = config.get('bilibili', 'test')
+    mangabz_test = config.get('mangabz', 'test')
+
+    result = {'漫画db': manhuadb_test, '57漫画': wuqimh_test, 'bilibili漫画': bilibili_test, 'MangaBZ': mangabz_test}
+    return result
+
+
+def write_score(result: dict):
+    config = configparser.RawConfigParser()
+    config.read('config.ini')
+    sections = config.sections()
+    for key, value in result.items():
+        for section in sections:
+            item = dict(config.items(section))
+            if 'name' in item:
+                if item['name'] == key:
+                    config.set(section, 'test', value)
+    with open('config.ini', 'w') as f:
+        config.write(f)

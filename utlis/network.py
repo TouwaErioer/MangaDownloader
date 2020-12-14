@@ -14,7 +14,7 @@ import socks
 from fake_useragent import UserAgent
 from retrying import retry
 
-from utlis.config import read_test, read_config
+from utlis.config import read_test, read_config, check_test, read_score, write_score
 from aiohttp_socks import ProxyType, ProxyConnector
 
 
@@ -119,21 +119,25 @@ def speed(url, headers):
 
 
 def get_test():
-    proxies = read_config('proxy', None)
-    result = {}
-    tests = read_test()
-    loop = asyncio.get_event_loop()
-    tasks = [asyncio.ensure_future(work_speed(test, proxies)) for test in tests]
-    loop.run_until_complete(asyncio.wait(tasks))
-    for task in tasks:
-        name, response_time = task.result()
-        if name in result:
-            result[name] = float(result[name]) + float(response_time)
-        else:
-            result[name] = response_time
-    for key, value in result.items():
-        result[key] = '%.2f' % float(value / 5)
-    return result
+    if check_test() is False:
+        proxies = read_config('proxy', None)
+        result = {}
+        tests = read_test()
+        loop = asyncio.get_event_loop()
+        tasks = [asyncio.ensure_future(work_speed(test, proxies)) for test in tests]
+        loop.run_until_complete(asyncio.wait(tasks))
+        for task in tasks:
+            name, response_time = task.result()
+            if name in result:
+                result[name] = float(result[name]) + float(response_time)
+            else:
+                result[name] = response_time
+        for key, value in result.items():
+            result[key] = '%.2f' % float(value / 5)
+        write_score(result)
+        return result
+    else:
+        return read_score()
 
 
 def check_proxy(host, port):

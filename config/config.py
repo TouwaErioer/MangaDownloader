@@ -84,7 +84,7 @@ class config:
 
             # value验证
             for item in section.items():
-                if item[1] or item[0] == 'cookie':
+                if item[1] or item[0] == 'cookie' or item[0] == 'test':
                     pass
                 else:
                     raise ValueError('%s-%s参数不能为空' % (section_name, str(item[0])))
