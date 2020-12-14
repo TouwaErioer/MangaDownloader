@@ -12,7 +12,7 @@ from utlis.config import read_config
 from utlis.network import download_image
 
 
-def download(task: Task, semaphore=5, tor=False):
+def download(task: Task, proxy: dict, semaphore=5):
     title = task.title
     name = task.name
     episode_title = task.episode_title
@@ -39,7 +39,7 @@ def download(task: Task, semaphore=5, tor=False):
 
         if not os.path.exists(image_path):
             task = {'url': url, 'path': image_path, 'headers': headers}
-            all_task.append(asyncio.ensure_future(download_image(task, semaphore, tor=tor)))
+            all_task.append(asyncio.ensure_future(download_image(task, semaphore, proxy=proxy)))
 
     if len(all_task) > 0:
         # 进度条

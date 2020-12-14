@@ -31,7 +31,7 @@ class ManhuaDB(MangaParser):
     def search(self, keywords: str, enter_author):
         enter_author = enter_author if enter_author is not None else ''
         url = self.search_url % keywords
-        response = get_html(url, headers=self.headers, tor=self.tor)
+        response = get_html(url, self.headers, self.proxy)
         soup = BeautifulSoup(response.content, 'lxml')
         comic_book = soup.select('.comicbook-index')
         results = []
@@ -46,7 +46,7 @@ class ManhuaDB(MangaParser):
         return results
 
     def get_soup(self, url):
-        html = get_html(url, self.headers)
+        html = get_html(url, self.headers, self.proxy)
         return BeautifulSoup(html.content, 'lxml'), html.elapsed.total_seconds()
 
     @staticmethod
@@ -73,7 +73,7 @@ class ManhuaDB(MangaParser):
         return url_list
 
     def get_jpg_list(self, episode_url):
-        response = get_html(episode_url, self.headers)
+        response = get_html(episode_url, self.headers, self.proxy)
         html = response.text
         jpg_url = re.findall(r'<img class="img-fluid show-pic" src="(.*?)" />', html)[0]
         suffix = jpg_url.split('/')[-1]

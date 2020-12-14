@@ -3,11 +3,15 @@
 # @Time    : 2020/12/1 12:54
 # @Author  : DHY
 # @File    : cli.py
+import asyncio
+import time
+
+from progress.spinner import Spinner
 
 from component.color import blue_text, green_text, yellow_text
-from component.enter import enter_keywords, enter_index, enter_proxy, check_speed
+from component.enter import enter_keywords, enter_index, check_speed
 from config.config import config
-from utlis.network import get_test
+from utlis.network import get_test, async_get
 from website.manga import MangaParser
 from website.mangabz import MangaBZ
 from website.manhuadb import ManhuaDB
@@ -56,10 +60,18 @@ if __name__ == '__main__':
     keywords = value if type(value) != tuple else value[0]
     author = None if type(value) != tuple else value[1]
 
+    start = time.time()
     # 线程池获取搜索结果
     executor = ThreadPoolExecutor(max_workers=5)
     all_task = [executor.submit(work, parser) for parser in [get_manga(option) for option in options]]
+    spinner = Spinner('Loading ')
+    for task in all_task:
+        while task.done() is False:
+            spinner.next()
+            time.sleep(0.1)
+    print('')
     wait(all_task, return_when=ALL_COMPLETED)
+    print('用时%f秒' % float(time.time() - start))  # 2s
 
     # 合并搜索结果
     results = []

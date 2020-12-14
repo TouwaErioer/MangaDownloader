@@ -3,6 +3,7 @@
 # @Time    : 2020/12/13 10:55
 # @Author  : DHY
 # @File    : network.py
+
 import asyncio
 import socket
 import time
@@ -13,17 +14,15 @@ import socks
 from fake_useragent import UserAgent
 from retrying import retry
 
-# 封装get请求
-from utlis.config import read_test
+from utlis.config import read_test, read_config
+from aiohttp_socks import ProxyType, ProxyConnector
 
 
+# 封装同步get请求
 @retry(stop_max_attempt_number=3, wait_fixed=2000)
-def get_html(url, headers, tor=False):
+def get_html(url: str, headers: dict, proxy: dict):
     try:
-        print(url)
-        proxies = None
-        if tor:
-            proxies = {'http': 'http://127.0.0.1:8118', 'https': 'http://127.0.0.1:8118'}
+        proxies = get_proxies(proxy)
         response = requests.get(url, headers=headers, timeout=15, proxies=proxies)
         response.raise_for_status()
         response.encoding = 'utf-8'
@@ -32,25 +31,27 @@ def get_html(url, headers, tor=False):
         print(e, url, headers)
 
 
+# 封装异步get请求
+@retry(stop_max_attempt_number=3, wait_fixed=2000)
+async def async_get(url: str, headers: dict, proxy: dict):
+    connector = get_aiohttp_connector(proxy)
+    async with aiohttp.ClientSession(connector=connector) as session:
+        response = await session.get(url, headers=headers, timeout=15)
+        content = await response.read()
+        return content
+
+
 # 异步下载图片
 @retry(stop_max_attempt_number=5, wait_fixed=2000)  # 报错重试5次，每隔2秒
-async def download_image(task: dict, semaphore, tor=False):
+async def download_image(task: dict, semaphore, proxy=None):
     try:
         async with semaphore:
-            proxies = None
-            if tor:
-                proxies = {'http': 'http://127.0.0.1:8118', 'https': 'http://127.0.0.1:8118'}
-            # connector = None
-            # request_class = None
-            # elif socks5:
-            #     connector = ProxyConnector()
-            #     proxies = 'socks5://127.0.0.1:1090'
-            #     request_class = ProxyClientRequest
+            # socks5代理
+            connector = get_aiohttp_connector(proxy)
             headers = task['headers']
             headers['User-Agent'] = UserAgent().random
-            async with aiohttp.ClientSession() as session:
-                session.proxies = proxies
-                response = await session.get(task['url'], headers=headers, timeout=5, proxy=proxies)
+            async with aiohttp.ClientSession(connector=connector) as session:
+                response = await session.get(task['url'], headers=headers, timeout=5)
                 if response.status != 404:
                     content = await response.read()
                     with open(task['path'], 'wb') as f:
@@ -94,13 +95,12 @@ async def get_detail(task, tor=False):
 
 
 # 测速
-async def work_speed(task, tor=False):
+async def work_speed(task, proxy=None):
     try:
         async with asyncio.Semaphore(500):
-            proxies = {'http': 'http://127.0.0.1:8118', 'https': 'http://127.0.0.1:8118'} if tor else None
-            async with aiohttp.ClientSession() as session:
+            connector = get_aiohttp_connector(proxy)
+            async with aiohttp.ClientSession(connector=connector) as session:
                 start = time.time()
-                session.proxies = proxies
                 response = await session.get(task['url'], timeout=3)
                 await response.read()
                 response_time = '%.2f' % float(time.time() - start)
@@ -119,10 +119,11 @@ def speed(url, headers):
 
 
 def get_test():
+    proxies = read_config('proxy', None)
     result = {}
     tests = read_test()
     loop = asyncio.get_event_loop()
-    tasks = [asyncio.ensure_future(work_speed(test)) for test in tests]
+    tasks = [asyncio.ensure_future(work_speed(test, proxies)) for test in tests]
     loop.run_until_complete(asyncio.wait(tasks))
     for task in tasks:
         name, response_time = task.result()
@@ -144,3 +145,31 @@ def check_proxy(host, port):
         return True
     except requests.exceptions.ConnectionError:
         return False
+
+
+def get_aiohttp_connector(proxy: dict):
+    if proxy is None:
+        return None
+    else:
+        host = proxy['socks5_host']
+        port = int(proxy['socks5_port'])
+        connector = ProxyConnector(
+            proxy_type=ProxyType.SOCKS5,
+            host=host,
+            port=port
+        )
+        return connector
+
+
+def get_proxies(proxy: dict):
+    if proxy is None:
+        return None
+    else:
+        host = proxy['socks5_host']
+        port = proxy['socks5_port']
+        proxy = 'socks5://%s:%s' % (host, port)
+        proxies = {
+            'http': proxy,
+            'https': proxy
+        }
+        return proxies

@@ -33,7 +33,7 @@ class MangaBZ(MangaParser):
 
     def search(self, keywords, enter_author):
         enter_author = enter_author if enter_author is not None else ''
-        response = get_html(self.search_url % keywords, headers=self.headers)
+        response = get_html(self.search_url % keywords, self.headers, self.proxy)
         soup = BeautifulSoup(response.content, 'lxml')
         results = []
         manga_list = soup.select('.mh-item-detali')
@@ -50,7 +50,7 @@ class MangaBZ(MangaParser):
         return results
 
     def get_soup(self, url):
-        response = get_html(url, headers=self.headers)
+        response = get_html(url, self.headers, self.proxy)
         return BeautifulSoup(response.content, 'lxml'), response.elapsed.total_seconds()
 
     def get_title(self, soup):
@@ -75,7 +75,7 @@ class MangaBZ(MangaParser):
         headers = self.headers.copy()
         headers['Referer'] = episode_url
         headers['User-Agent'] = self.user_agent
-        response = get_html(episode_url, headers=headers)
+        response = get_html(episode_url, headers, self.proxy)
         html = response.text
         title = re.findall('<title>(.*?)</title>', html)[0]
         episode_title = str(title).split('_')[1]

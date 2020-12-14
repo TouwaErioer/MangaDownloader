@@ -6,8 +6,7 @@
 import re
 
 from prettytable import PrettyTable
-
-from component.color import red_text, yellow_text, green_text
+from component.color import red_text, yellow_text
 from component.help import print_help
 from utlis.config import write_config, read_config
 from utlis.network import check_proxy
@@ -138,6 +137,8 @@ def check_speed(speed):
         tip = yellow_text % ('%.2f秒/张' % float(speed))
         is_proxy = input('测试速度大约为%s，建议使用代理(y/n)> ' % tip) or 'y'
         if is_proxy != 'n':
+            print('如果使用v2ray，请开启Mux多路复用，concurrency设为1024')
+            print('https://www.v2ray.com/chapter_02/mux.html')
             enter_proxy()
 
 

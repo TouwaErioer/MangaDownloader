@@ -30,7 +30,7 @@ class ManhuaDui(MangaParser):
     def search(self, keywords: str, enter_author, detail=True):
         enter_author = enter_author if enter_author is not None else ''
         url = self.search_url % keywords
-        search_response = get_html(url, headers=self.headers, tor=self.tor)
+        search_response = get_html(url, self.headers, self.proxy)
         search_soup = BeautifulSoup(search_response.content, 'lxml')
         comic_list = search_soup.select('.list-comic')
         results = []
@@ -46,7 +46,7 @@ class ManhuaDui(MangaParser):
 
     def get_soup(self, url):
         self.headers['User-Agent'] = UserAgent().random
-        html = get_html(url, self.headers)
+        html = get_html(url, self.headers, self.proxy)
         return BeautifulSoup(html.content, 'lxml'), html.elapsed.total_seconds()
 
     @staticmethod
@@ -75,7 +75,7 @@ class ManhuaDui(MangaParser):
             return pages
 
     def get_jpg_list(self, url):
-        response = get_html(url, self.headers)
+        response = get_html(url, self.headers, self.proxy)
         soup = BeautifulSoup(response.content, 'lxml')
         episode = soup.select('.head_title h2')[0].get_text()
         code = re.findall("var chapterImages =\\s*\"(.*?)\"", response.text)[0]

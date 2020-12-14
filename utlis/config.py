@@ -44,3 +44,11 @@ def read_test():
         return tests
     except Exception as e:
         print(e)
+
+
+def get_proxy():
+    proxy = read_config('proxy', None)
+    if proxy['socks5_host'] == '' or proxy['socks5_port'] == '':
+        return None
+    else:
+        return proxy

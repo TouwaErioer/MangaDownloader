@@ -33,7 +33,7 @@ class WuQiMh(MangaParser):
     def search(self, keywords, enter_author, is_recursion=False, detail=True):
         enter_author = enter_author if enter_author is not None else ''
         url = self.search_url % keywords
-        html = get_html(url, self.headers, tor=self.tor)
+        html = get_html(url, self.headers, self.proxy)
         soup = BeautifulSoup(html.content, 'lxml')
         page_count = len(soup.select('.pager-cont a'))
         books = soup.select('.book-detail')
@@ -58,7 +58,7 @@ class WuQiMh(MangaParser):
 
     def get_soup(self, url):
         self.headers['User-Agent'] = UserAgent().random
-        html = get_html(url, self.headers)
+        html = get_html(url, self.headers, self.proxy)
         return BeautifulSoup(html.content, 'lxml'), html.elapsed.total_seconds()
 
     @staticmethod
@@ -76,7 +76,7 @@ class WuQiMh(MangaParser):
         return episodes
 
     def get_jpg_list(self, episodes_url):
-        html = get_html(episodes_url, self.headers)
+        html = get_html(episodes_url, self.headers, self.proxy)
         js = re.findall('eval(.*?)\\n', html.text)[0]
         episode = re.findall('<h2>(.*?)</h2>', html.text)[0]
         # js2py运行js获取图片列表

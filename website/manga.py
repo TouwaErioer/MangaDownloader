@@ -10,7 +10,7 @@ from bs4 import BeautifulSoup
 from component.enter import enter_branch, enter_range
 from concurrent.futures import (ALL_COMPLETED, ThreadPoolExecutor, wait)
 
-from utlis.config import read_config
+from utlis.config import read_config, get_proxy
 from utlis.download import download
 from utlis.network import get_detail
 
@@ -22,9 +22,10 @@ class MangaParser(metaclass=ABCMeta):
         self.site = config['site']
         self.host = config['host']
         self.search_url = config['search-url']
-        self.tor = bool(int(read_config('download', 'tor')))
+        self.proxy = get_proxy()
         self.url = None
         self.title = None
+        self.semaphore = config['semaphore']
 
     # 搜索
     @abstractmethod
@@ -158,7 +159,7 @@ class MangaParser(metaclass=ABCMeta):
         not_exist_task = []
         start = time.time()
         for work in all_task:
-            result = download(work.result(), semaphore=int(self.config['semaphore']), tor=self.tor)
+            result = download(work.result(), proxy=self.proxy, semaphore=self.semaphore)
             if type(result) is list:
                 failure_list.append(result)
             elif type(result) is str:
