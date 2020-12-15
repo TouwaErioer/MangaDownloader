@@ -4,6 +4,7 @@
 # @Author  : DHY
 # @File    : cli.py
 import time
+from importlib.resources import read_text
 
 from progress.spinner import Spinner
 
@@ -47,92 +48,95 @@ def get_manga(option):
 
 
 if __name__ == '__main__':
+    try:
 
-    # 生成config对象，检查配置文件
-    config = config()
+        # 生成config对象，检查配置文件
+        config = config()
 
-    # 已选站点
-    options = config.select_site()
+        # 已选站点
+        options = config.select_site()
 
-    # 输入关键字
-    value = enter_keywords()
-    keywords = value if type(value) != tuple else value[0]
-    author = None if type(value) != tuple else value[1]
+        # 输入关键字
+        value = enter_keywords()
+        keywords = value if type(value) != tuple else value[0]
+        author = None if type(value) != tuple else value[1]
 
-    start = time.time()
-    # 线程池获取搜索结果
-    executor = ThreadPoolExecutor(max_workers=5)
-    all_task = [executor.submit(work, parser) for parser in [get_manga(option) for option in options]]
-    spinner = Spinner('Loading ')
-    for task in all_task:
-        while task.done() is False:
-            spinner.next()
-            time.sleep(0.1)
-    print('')
-    wait(all_task, return_when=ALL_COMPLETED)
-    print('用时%f秒' % float(time.time() - start))  # 2s
+        start = time.time()
+        # 线程池获取搜索结果
+        executor = ThreadPoolExecutor(max_workers=5)
+        all_task = [executor.submit(work, parser) for parser in [get_manga(option) for option in options]]
+        spinner = Spinner('Loading ')
+        for task in all_task:
+            while task.done() is False:
+                spinner.next()
+                time.sleep(0.1)
+        print('')
+        wait(all_task, return_when=ALL_COMPLETED)
+        print('用时%f秒' % float(time.time() - start))  # 2s
 
-    # 合并搜索结果
-    results = []
-    for task in all_task:
-        result = task.result()
-        if result is not None:
-            results.extend(result)
+        # 合并搜索结果
+        results = []
+        for task in all_task:
+            result = task.result()
+            if result is not None:
+                results.extend(result)
 
-    # 获取测试结果
-    tests = get_test()
+        # 获取测试结果
+        tests = get_test()
 
-    for result in results:
-        result.update_speed(tests)
+        for result in results:
+            result.update_speed(tests)
 
-    if len(results) != 0:
+        if len(results) != 0:
 
-        # 显示表
-        show(results, config)
+            # 显示表
+            show(results, config)
 
-        # 输入序号
-        value = enter_index(len(results)) - 1
+            # 输入序号
+            value = enter_index(len(results)) - 1
 
-        selected = results[value]
-        url = selected.href
-        parser = selected.obj
-        ban = selected.ban
-        title = selected.title
-        name = selected.name
-        speed = selected.speed
-        check_speed(speed)
-        path = config.folder['path']
-        source_dir = '%s%s/%s' % (path, name, title)
-        zip_name = '%s%s/%s.zip' % (path, name, title)
+            selected = results[value]
+            url = selected.href
+            parser = selected.obj
+            ban = selected.ban
+            title = selected.title
+            name = selected.name
+            speed = selected.speed
+            check_speed(speed)
+            path = config.folder['path']
+            source_dir = '%s%s/%s' % (path, name, title)
+            zip_name = '%s%s/%s.zip' % (path, name, title)
 
-        if ban:
-            raise Exception('已下架')
+            if ban:
+                raise Exception('已下架')
 
-        if isinstance(parser, MangaParser):
+            if isinstance(parser, MangaParser):
 
-            # 运行
-            failure_list, not_exist_tasks, time_consuming = parser.run(url)
+                # 运行
+                failure_list, not_exist_tasks, time_consuming = parser.run(url)
 
-            # 重试
-            repeat(failure_list)
+                # 重试
+                repeat(failure_list)
 
-            # todo 使用别的站点下载
-            if len(not_exist_tasks) != 0:
-                tip = '%s、%s...等文件资源未找到'
-                print(tip % (yellow_text % not_exist_tasks[0], yellow_text % not_exist_tasks[1]))
+                # todo 使用别的站点下载
+                if len(not_exist_tasks) != 0:
+                    tip = '%s、%s...等文件资源未找到'
+                    print(tip % (yellow_text % not_exist_tasks[0], yellow_text % not_exist_tasks[1]))
 
-            file_total = get_file_total(source_dir)
+                file_total = get_file_total(source_dir)
 
-            if int(config.download['remote']) and file_total != 0:
-                # 压缩
-                make_zip(source_dir, zip_name)
-                # 删除文件夹
-                shutil.rmtree(source_dir)
+                if int(config.download['remote']) and file_total != 0:
+                    # 压缩
+                    make_zip(source_dir, zip_name)
+                    # 删除文件夹
+                    shutil.rmtree(source_dir)
 
-            file_total = blue_text % str(file_total)
-            time_consuming = green_text % str(time_consuming)
-            print('共下载文件%s个，耗时%s秒' % (file_total, time_consuming))
+                file_total = blue_text % str(file_total)
+                time_consuming = green_text % str(time_consuming)
+                print('共下载文件%s个，耗时%s秒' % (file_total, time_consuming))
+            else:
+                raise TypeError('%s不属于%s' % (parser, MangaParser))
         else:
-            raise TypeError('%s不属于%s' % (parser, MangaParser))
-    else:
-        print('没有查询到结果')
+            print('没有查询到结果')
+    except Exception as e:
+        print(e)

@@ -3,12 +3,14 @@
 # @Time    : 2020/12/13 11:17
 # @Author  : DHY
 # @File    : enter.py
+import os
 import re
 
 from prettytable import PrettyTable
 from component.color import red_text, yellow_text
 from component.help import print_help
-from utlis.config import write_config, read_config, get_proxy
+from test.test import test_proxy_concurrency
+from utlis.config import write_config, get_proxy
 from utlis.network import check_proxy
 
 
@@ -133,28 +135,33 @@ def enter_index(results):
 
 
 def check_speed(speed):
-    if float(speed) > 1 and get_proxy() is None:
+    # 当速度大于1，没有配置代理，系统为Windows提醒设置代理
+    if float(speed) > 1 and get_proxy() is None and os.name == 'nt':
         tip = yellow_text % ('%.2f秒/张' % float(speed))
         is_proxy = input('测试速度大约为%s，建议使用代理(y/n)> ' % tip) or 'y'
         if is_proxy != 'n':
-            print('如果使用v2ray，请开启Mux多路复用，concurrency设为1024')
-            print('https://www.v2ray.com/chapter_02/mux.html')
             enter_proxy()
 
 
-def enter_proxy(is_repeat=False):
-    proxy = read_config('proxy', None)
-    if proxy['socks5_host'] == '' or is_repeat:
-        enter_host()
-    if proxy['socks5_port'] == '' or is_repeat:
-        enter_port()
+def enter_proxy():
+    host = enter_host()
+    port = enter_port()
 
-    socks5_host = read_config('proxy', 'socks5_host')
-    socks5_port = read_config('proxy', 'socks5_port')
-    proxy = check_proxy(socks5_host, int(socks5_port))
+    # 代理连通性测试
+    proxy = check_proxy(host, port)
     if proxy is False:
-        print(red_text % ('%s代理错误，请重新输入' % (socks5_host, socks5_port)))
-        enter_proxy(True)
+        print(red_text % ('%s:%s代理错误，请重新输入' % (host, port)))
+        enter_proxy()
+
+    # 代理并发性测试
+    test = test_proxy_concurrency({'socks5_host': host, 'socks5_port': port})
+    if test is False:
+        write_config('proxy', 'socks5_host', '')
+        write_config('proxy', 'socks5_port', '')
+        tip = '如果使用v2ray，请开启Mux多路复用concurrency设为1024\n详情：https://www.v2ray.com/chapter_02/mux.html'
+        raise Exception(red_text % ('并发测试失败，%s' % tip))
+
+    return host, port
 
 
 def enter_host():
@@ -163,7 +170,7 @@ def enter_host():
         regex_host = r'^((2[0-4]\d|25[0-5]|[1]?\d\d?)\.){3}(2[0-4]\d|25[0-5]|[1]?\d\d?)$'
         if re.findall(regex_host, socks5_host):
             write_config('proxy', 'socks5_host', socks5_host)
-            break
+            return socks5_host
         else:
             print(red_text % '输入socks5_host格式错误')
 
@@ -174,7 +181,7 @@ def enter_port():
             socks5_port = int(input('请输入%s> ' % (yellow_text % 'Port')))
             if 1 < socks5_port < 65535:
                 write_config('proxy', 'socks5_port', str(socks5_port))
-                break
+                return socks5_port
             else:
                 print(red_text % '输入socks5_port格式错误')
         except ValueError:

@@ -5,24 +5,23 @@
 # @File    : network.py
 
 import asyncio
-import socket
 import time
 
 import aiohttp
 import requests
-import socks
 from fake_useragent import UserAgent
 from retrying import retry
 
-from utlis.config import read_test, read_config, check_test, read_score, write_score
+from component import color
+from utlis.config import read_test, read_config, check_test, read_score, write_score, get_proxy
 from aiohttp_socks import ProxyType, ProxyConnector
 
 
 # 封装同步get请求
 @retry(stop_max_attempt_number=3, wait_fixed=2000)
-def get_html(url: str, headers: dict, proxy: dict):
+def get_html(url: str, headers: dict):
     try:
-        proxies = get_proxies(proxy)
+        proxies = get_requests_proxies()
         response = requests.get(url, headers=headers, timeout=15, proxies=proxies)
         response.raise_for_status()
         response.encoding = 'utf-8'
@@ -43,7 +42,7 @@ async def async_get(url: str, headers: dict, proxy: dict):
 
 # 异步下载图片
 @retry(stop_max_attempt_number=5, wait_fixed=2000)  # 报错重试5次，每隔2秒
-async def download_image(task: dict, semaphore, proxy=None):
+async def download_image(task: dict, semaphore, proxy):
     try:
         async with semaphore:
             # socks5代理
@@ -141,11 +140,13 @@ def get_test():
 
 
 def check_proxy(host, port):
-    socks.set_default_proxy(socks.SOCKS5, host, port)
-    socket.socket = socks.socksocket
-
     try:
-        requests.get('https://api.ipify.org/')
+        proxy = 'socks5://%s:%s' % (host, port)
+        proxies = {
+            'http': proxy,
+            'https': proxy
+        }
+        requests.get('https://api.ipify.org/', proxies=proxies)
         return True
     except requests.exceptions.ConnectionError:
         return False
@@ -165,7 +166,10 @@ def get_aiohttp_connector(proxy: dict):
         return connector
 
 
-def get_proxies(proxy: dict):
+# 获取requests的代理
+def get_requests_proxies():
+    proxy = get_proxy()
+    # config.ini和内存里的变量都为None，不代理
     if proxy is None:
         return None
     else:

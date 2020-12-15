@@ -20,6 +20,7 @@ def download(task: Task, proxy: dict, semaphore=5):
     headers = task.headers
 
     folder = read_config('folder', 'path')
+
     loop = asyncio.get_event_loop()
     all_task = []
     semaphore = asyncio.Semaphore(semaphore)
@@ -36,10 +37,9 @@ def download(task: Task, proxy: dict, semaphore=5):
 
         # suffix
         image_path = '%s%s/%s/%s/%s' % (folder, name, title, episode_title, str(index) + '.jpg')
-
         if not os.path.exists(image_path):
             task = {'url': url, 'path': image_path, 'headers': headers}
-            all_task.append(asyncio.ensure_future(download_image(task, semaphore, proxy=proxy)))
+            all_task.append(asyncio.ensure_future(download_image(task, semaphore, proxy)))
 
     if len(all_task) > 0:
         # 进度条

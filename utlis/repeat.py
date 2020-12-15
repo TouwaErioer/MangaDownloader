@@ -6,6 +6,7 @@
 
 # 重试，直到没有失败任务
 from component.task import Task
+from utlis.config import get_proxy
 from utlis.download import read_config, download
 
 
@@ -30,7 +31,8 @@ def repeat(failures, count=1):
                 jpg_list.append({'url': url, 'index': index})
             task = Task(name, title, episode_title, jpg_list, headers)
             tasks.append(task)
-        download_results = [download(task) for task in tasks]
+        proxy = get_proxy()
+        download_results = [download(task, proxy) for task in tasks]
         results = [result for result in download_results if result is not None and type(result) is list]
         if len(results) != 0:
             return repeat(results, count + 1)

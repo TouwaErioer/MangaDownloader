@@ -5,6 +5,8 @@
 # @File    : config.py
 import configparser
 
+from component import color
+
 
 def read_config(section, item):
     try:

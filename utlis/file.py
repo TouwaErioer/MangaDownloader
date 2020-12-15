@@ -6,6 +6,8 @@
 import os
 import zipfile
 
+import aiofiles
+
 
 def make_zip(source_dir, output_filename):
     file = zipfile.ZipFile(output_filename, 'w')
@@ -25,3 +27,8 @@ def get_file_total(source_dir):
         for file in files:
             file_total += 1
     return file_total
+
+
+async def async_write_file(config):
+    async with aiofiles.open('config.ini', mode='r') as f:
+        config.write(f)
