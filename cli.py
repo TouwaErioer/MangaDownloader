@@ -27,7 +27,7 @@ from concurrent.futures import (ALL_COMPLETED, ThreadPoolExecutor, wait)
 
 def work(parser):
     if isinstance(parser, MangaParser):
-        return parser.search(keywords, author)
+        return parser.search(keywords, author, site)
     else:
         raise TypeError('%s不属于%s' % (parser, MangaParser))
 
@@ -57,9 +57,9 @@ if __name__ == '__main__':
         options = config.select_site()
 
         # 输入关键字
-        value = enter_keywords()
-        keywords = value if type(value) != tuple else value[0]
-        author = None if type(value) != tuple else value[1]
+        keywords, author, site = enter_keywords(config)
+        # keywords = value if type(value) != tuple else value[0]
+        # author = None if type(value) != tuple else value[1]
 
         start = time.time()
         # 线程池获取搜索结果

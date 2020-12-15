@@ -35,21 +35,22 @@ class BiliBili(MangaParser):
             'User-Agent': UserAgent().random
         }
 
-    def search(self, keywords, enter_author):
-        enter_author = enter_author if enter_author is not None else ''
-        self.headers['referer'] = 'https://manga.bilibili.com/search?from=manga_detail&keyword='
-        data = {'key_word': keywords, 'page_num': 1, 'page_size': 20}
-        response = requests.post(self.search_url, data=data, headers=self.headers)
-        result = response.json()['data']['list']
-        results = []
-        for res in result:
-            title = str(res['title']).replace('<em class=\"keyword\">', '').replace('</em>', '')
-            href = str(res['id'])
-            author = res['author_name'][0].replace('<em class=\"keyword\">', '').replace('</em>', '')
-            if title.find(keywords) != -1 or author.find(enter_author) != -1:
-                results.append(Result(title, href, author, self, self.color, self.name, False, 1, None, None))
-        results = self.get_detail(results)
-        return results
+    def search(self, keywords, enter_author, site):
+        if site is None or site == self.name:
+            enter_author = enter_author if enter_author is not None else ''
+            self.headers['referer'] = 'https://manga.bilibili.com/search?from=manga_detail&keyword='
+            data = {'key_word': keywords, 'page_num': 1, 'page_size': 20}
+            response = requests.post(self.search_url, data=data, headers=self.headers)
+            result = response.json()['data']['list']
+            results = []
+            for res in result:
+                title = str(res['title']).replace('<em class=\"keyword\">', '').replace('</em>', '')
+                href = str(res['id'])
+                author = res['author_name'][0].replace('<em class=\"keyword\">', '').replace('</em>', '')
+                if title.find(keywords) != -1 or author.find(enter_author) != -1:
+                    results.append(Result(title, href, author, self, self.color, self.name, False, 1, None, None))
+            results = self.get_detail(results)
+            return results
 
     # 获取第一话图片的速度
     def get_search_data(self, results):

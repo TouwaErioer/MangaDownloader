@@ -93,6 +93,9 @@ class config:
         return [site['name'] for site in [self.manhuadb, self.manhuadui, self.wuqimh, self.bilibili, self.mangabz] if
                 int(site['search'])]
 
+    def get_site_name(self):
+        return [site['name'] for site in [self.manhuadb, self.manhuadui, self.wuqimh, self.bilibili, self.mangabz]]
+
 
 if __name__ == '__main__':
     config()

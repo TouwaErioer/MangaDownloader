@@ -88,18 +88,25 @@ def enter_command():
             print(red_text % '输入命令有误')
 
 
-def enter_keywords():
+def enter_keywords(config):
     while True:
         keywords = input('请输入关键词> ') or '电锯人'
         if keywords.find(':') != -1:
-            value = keywords.split(':')
-            keywords = value[0]
-            author = value[1]
-            return keywords, author
+            array = keywords.split(':')
+            keywords = array[0]
+            author = array[1]
+            if len(array) == 3:
+                site = array[2]
+                sites = config.get_site_name()
+                if site not in sites:
+                    raise Exception(red_text % ('站点%s未在支持列表中' % site))
+                return keywords, author, site
+            else:
+                return keywords, author, None
         elif keywords == 'help' or keywords == 'h':
             print_help('keywords')
         else:
-            return keywords
+            return keywords, None, None
 
 
 def enter_cookie(config):

@@ -27,22 +27,23 @@ class ManhuaDui(MangaParser):
         }
 
     # 搜索
-    def search(self, keywords: str, enter_author, detail=True):
-        enter_author = enter_author if enter_author is not None else ''
-        url = self.search_url % keywords
-        search_response = get_html(url, self.headers)
-        search_soup = BeautifulSoup(search_response.content, 'lxml')
-        comic_list = search_soup.select('.list-comic')
-        results = []
-        for comic in comic_list:
-            title = a.get('title')
-            author = comic.select('.auth')[0].get_text()
-            href = a.get('href')
-            a = comic.select('a')[1]
-            if title.find(keywords) != -1 and author.find(enter_author) != -1:
-                results.append(Result(title, href, author, self, self.color, self.name, None, None, None, None))
-        results = self.get_detail(results)
-        return results
+    def search(self, keywords: str, enter_author, site, detail=True):
+        if site is None or site == self.name:
+            enter_author = enter_author if enter_author is not None else ''
+            url = self.search_url % keywords
+            search_response = get_html(url, self.headers)
+            search_soup = BeautifulSoup(search_response.content, 'lxml')
+            comic_list = search_soup.select('.list-comic')
+            results = []
+            for comic in comic_list:
+                title = a.get('title')
+                author = comic.select('.auth')[0].get_text()
+                href = a.get('href')
+                a = comic.select('a')[1]
+                if title.find(keywords) != -1 and author.find(enter_author) != -1:
+                    results.append(Result(title, href, author, self, self.color, self.name, None, None, None, None))
+            results = self.get_detail(results)
+            return results
 
     def get_soup(self, url):
         self.headers['User-Agent'] = UserAgent().random

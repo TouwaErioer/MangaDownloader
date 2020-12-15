@@ -30,31 +30,32 @@ class WuQiMh(MangaParser):
             'User-Agent': UserAgent().random
         }
 
-    def search(self, keywords, enter_author, is_recursion=False, detail=True):
-        enter_author = enter_author if enter_author is not None else ''
-        url = self.search_url % keywords
-        html = get_html(url, self.headers)
-        soup = BeautifulSoup(html.content, 'lxml')
-        page_count = len(soup.select('.pager-cont a'))
-        books = soup.select('.book-detail')
-        results = []
-        for book in books:
-            a = book.select('dt a')[0]
-            title = a.get('title')
-            href = self.site + a.get('href')
-            author = book.select('.tags')[2].select('a')[0].get_text()
-            if title.find(keywords) != -1 and author.find(enter_author) != -1:
-                results.append(Result(title, href, author, self, self.color, self.name, None, None, None, None))
-        # 页数大于1，线程池获取第二页以后的数据
-        if page_count > 1 and is_recursion is not True:
-            executor = ThreadPoolExecutor(max_workers=5)
-            all_task = [executor.submit(self.search, keywords + '-p-' + str(page), is_recursion=True) for page in
-                        range(2, page_count + 1)]
-            wait(all_task, return_when=ALL_COMPLETED)
-            for task in all_task:
-                results.extend(task.result())
-        results = self.get_detail(results)
-        return results
+    def search(self, keywords, enter_author,site, is_recursion=False, detail=True):
+        if site is None or site == self.name:
+            enter_author = enter_author if enter_author is not None else ''
+            url = self.search_url % keywords
+            html = get_html(url, self.headers)
+            soup = BeautifulSoup(html.content, 'lxml')
+            page_count = len(soup.select('.pager-cont a'))
+            books = soup.select('.book-detail')
+            results = []
+            for book in books:
+                a = book.select('dt a')[0]
+                title = a.get('title')
+                href = self.site + a.get('href')
+                author = book.select('.tags')[2].select('a')[0].get_text()
+                if title.find(keywords) != -1 and author.find(enter_author) != -1:
+                    results.append(Result(title, href, author, self, self.color, self.name, None, None, None, None))
+            # 页数大于1，线程池获取第二页以后的数据
+            if page_count > 1 and is_recursion is not True:
+                executor = ThreadPoolExecutor(max_workers=5)
+                all_task = [executor.submit(self.search, keywords + '-p-' + str(page), is_recursion=True) for page in
+                            range(2, page_count + 1)]
+                wait(all_task, return_when=ALL_COMPLETED)
+                for task in all_task:
+                    results.extend(task.result())
+            results = self.get_detail(results)
+            return results
 
     def get_soup(self, url):
         self.headers['User-Agent'] = UserAgent().random

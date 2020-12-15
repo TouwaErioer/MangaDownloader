@@ -35,5 +35,23 @@ def test_proxy_concurrency(proxy):
     return True
 
 
+def enter_keywords():
+    while True:
+        keywords = input('请输入关键词> ') or '电锯人'
+        if keywords.find(':') != -1:
+            array = keywords.split(':')
+            keywords = array[0]
+            author = array[1]
+            if len(array) == 3:
+                site = array[2]
+                return keywords, author, site
+            else:
+                return keywords, author, None
+        elif keywords == 'help' or keywords == 'h':
+            pass
+        else:
+            return keywords
+
+
 if __name__ == '__main__':
-    print(test_proxy({'socks5_host': '127.0.0.1', 'socks5_port': 1090}))
+    print(enter_keywords())

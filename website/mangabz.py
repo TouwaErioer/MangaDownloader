@@ -31,23 +31,24 @@ class MangaBZ(MangaParser):
             'Referer': self.site,
         }
 
-    def search(self, keywords, enter_author):
-        enter_author = enter_author if enter_author is not None else ''
-        response = get_html(self.search_url % keywords, self.headers)
-        soup = BeautifulSoup(response.content, 'lxml')
-        results = []
-        manga_list = soup.select('.mh-item-detali')
-        for manga in manga_list:
-            a = manga.select('a')[0]
-            title = a.get('title')
-            href = self.site + a.get('href')
-            # 精确搜索，繁体转简体
-            if convert(title, 'zh-cn').find(keywords) != -1:
-                result = Result(title, href, None, self, self.color, self.name, None, None, None, None)
-                results.append(result)
-        results = self.get_detail(results)
-        results = [result for result in results if result.author.find(enter_author) != -1]
-        return results
+    def search(self, keywords, enter_author,site):
+        if site is None or site == self.name:
+            enter_author = enter_author if enter_author is not None else ''
+            response = get_html(self.search_url % keywords, self.headers)
+            soup = BeautifulSoup(response.content, 'lxml')
+            results = []
+            manga_list = soup.select('.mh-item-detali')
+            for manga in manga_list:
+                a = manga.select('a')[0]
+                title = a.get('title')
+                href = self.site + a.get('href')
+                # 精确搜索，繁体转简体
+                if convert(title, 'zh-cn').find(keywords) != -1:
+                    result = Result(title, href, None, self, self.color, self.name, None, None, None, None)
+                    results.append(result)
+            results = self.get_detail(results)
+            results = [result for result in results if result.author.find(enter_author) != -1]
+            return results
 
     def get_soup(self, url):
         response = get_html(url, self.headers)
