@@ -9,7 +9,7 @@ import requests
 from progress.spinner import Spinner
 
 from component.color import blue_text, green_text, yellow_text
-from component.enter import enter_keywords, enter_index, check_speed
+from component.enter import enter_keywords, enter_index, check_speed, enter_command
 from config.config import config
 from test.test import get_test
 from website.manga import MangaParser
@@ -49,6 +49,7 @@ def get_manga(option):
 
 if __name__ == '__main__':
     try:
+        enter_command()
 
         # 生成config对象，检查配置文件
         config = config()

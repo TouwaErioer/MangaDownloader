@@ -5,7 +5,6 @@
 # @File    : enter.py
 import os
 import re
-
 from prettytable import PrettyTable
 from component.color import red_text, yellow_text
 from component.help import print_help
@@ -15,7 +14,6 @@ from utlis.network import check_proxy
 
 
 def enter_range(pages: list):
-    # print('格式：【x:y，从x开始y结束；y，从1开始y结束】')
     while True:
         start = 0
         try:
@@ -76,14 +74,15 @@ def enter_branch(tab: dict):
 def enter_command():
     while True:
         try:
-            command = input('MangaDownloader> ') or 'start'
-            if command != 'start' and command != 'help':
+            command = input('MangaDownloader> ') or 'help'
+            if command != 'start' and command != 'help' and command != 'list' and command != 'proxy' \
+                    and command != 'config':
                 raise ValueError
             else:
                 if command == 'start':
                     break
-                elif command == 'help' or 'h':
-                    print_help()
+                elif command == 'help' or command == 'list' or command == 'proxy' or command == 'config':
+                    print_help(command)
         except ValueError:
             print(red_text % '输入命令有误')
 
@@ -162,6 +161,7 @@ def enter_proxy():
 
     # 代理并发性测试
     test = test_proxy_concurrency({'socks5_host': host, 'socks5_port': port})
+
     if test is False:
         write_config('proxy', 'socks5_host', '')
         write_config('proxy', 'socks5_port', '')

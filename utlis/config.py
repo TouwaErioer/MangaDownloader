@@ -5,7 +5,7 @@
 # @File    : config.py
 import configparser
 
-from component import color
+from component.color import parse_color
 
 
 def read_config(section, item):
@@ -93,3 +93,15 @@ def write_score(result: dict):
                     config.set(section, 'test', value)
     with open('config.ini', 'w') as f:
         config.write(f)
+
+
+def get_site_name():
+    config = configparser.RawConfigParser()
+    config.read('config.ini')
+    sections = config.sections()
+    result = []
+    for section in sections:
+        section = dict(config.items(section))
+        if 'name' in section:
+            result.append(parse_color(section['color']) % section['name'])
+    return result

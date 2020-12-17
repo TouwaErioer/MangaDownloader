@@ -7,7 +7,7 @@ import asyncio
 
 import aiohttp
 
-from utlis.config import check_test, read_test, write_score, read_score, get_proxy
+from utlis.config import check_test, read_test, write_score, read_score, get_proxy, get_site_name
 from utlis.network import get_aiohttp_connector, work_speed
 
 
@@ -55,7 +55,10 @@ def get_test():
         for key, value in result.items():
             result[key] = '%.2f' % float(value / 5)
         write_score(result)
-        print(result)
         return result
     else:
         return read_score()
+
+
+if __name__ == '__main__':
+    get_site_name()
