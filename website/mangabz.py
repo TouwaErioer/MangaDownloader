@@ -6,7 +6,6 @@
 import re
 
 from bs4 import BeautifulSoup
-from zhconv import convert
 
 from component.color import cyan_blue_text
 from component.result import Result
@@ -17,7 +16,6 @@ from website.manga import MangaParser
 
 
 class MangaBZ(MangaParser):
-
     image_url = 'http://image.mangabz.com/1/%s/%s/%s.jpg?cid=%s&key=%s&type=1'
     # todo 随机
     user_agent = 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.66 Mobile Safari/537.36'
@@ -31,7 +29,7 @@ class MangaBZ(MangaParser):
             'Referer': self.site,
         }
 
-    def search(self, keywords, enter_author,site):
+    def search(self, keywords, enter_author, site):
         if site is None or site == self.name:
             enter_author = enter_author if enter_author is not None else ''
             response = get_html(self.search_url % keywords, self.headers)
