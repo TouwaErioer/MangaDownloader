@@ -6,8 +6,6 @@
 import os
 import zipfile
 
-import aiofiles
-
 
 def make_zip(source_dir, output_filename):
     file = zipfile.ZipFile(output_filename, 'w')

@@ -12,22 +12,18 @@ import requests
 from fake_useragent import UserAgent
 from retrying import retry
 
-from component import color
-from utlis.config import read_test, read_config, check_test, read_score, write_score, get_proxy
+from utlis.config import get_proxy
 from aiohttp_socks import ProxyType, ProxyConnector
 
 
 # 封装同步get请求
 @retry(stop_max_attempt_number=3, wait_fixed=2000)
 def get_html(url: str, headers: dict):
-    try:
-        proxies = get_requests_proxies()
-        response = requests.get(url, headers=headers, timeout=15, proxies=proxies)
-        response.raise_for_status()
-        response.encoding = 'utf-8'
-        return response
-    except Exception as e:
-        print(e, url, headers)
+    proxies = get_requests_proxies()
+    response = requests.get(url, headers=headers, timeout=15, proxies=proxies)
+    response.raise_for_status()
+    response.encoding = 'utf-8'
+    return response
 
 
 # 封装异步get请求
@@ -58,7 +54,6 @@ async def download_image(task: dict, semaphore, proxy):
                 else:
                     # 资源不存在
                     episode = str(task['path']).split('/')[-2]
-                    print(task['url'])
                     return '%s' % episode
     except Exception:
         # 连接异常，失败任务
@@ -115,28 +110,6 @@ def speed(url, headers):
             return '%.2f' % response.elapsed.total_seconds()
     except Exception:
         pass
-
-
-def get_test():
-    if check_test() is False:
-        proxies = read_config('proxy', None)
-        result = {}
-        tests = read_test()
-        loop = asyncio.get_event_loop()
-        tasks = [asyncio.ensure_future(work_speed(test, proxies)) for test in tests]
-        loop.run_until_complete(asyncio.wait(tasks))
-        for task in tasks:
-            name, response_time = task.result()
-            if name in result:
-                result[name] = float(result[name]) + float(response_time)
-            else:
-                result[name] = response_time
-        for key, value in result.items():
-            result[key] = '%.2f' % float(value / 5)
-        write_score(result)
-        return result
-    else:
-        return read_score()
 
 
 def check_proxy(host, port):

@@ -1,17 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# @Time    : 2020/12/1 12:54
-# @Author  : DHY
+# @Time    : 2020/12/1 12:50
+# @Author  : chobits
 # @File    : cli.py
 import time
-from importlib.resources import read_text
 
+import requests
 from progress.spinner import Spinner
 
 from component.color import blue_text, green_text, yellow_text
 from component.enter import enter_keywords, enter_index, check_speed
 from config.config import config
-from utlis.network import get_test
+from test.test import get_test
 from website.manga import MangaParser
 from website.mangabz import MangaBZ
 from website.manhuadb import ManhuaDB
@@ -58,8 +58,6 @@ if __name__ == '__main__':
 
         # 输入关键字
         keywords, author, site = enter_keywords(config)
-        # keywords = value if type(value) != tuple else value[0]
-        # author = None if type(value) != tuple else value[1]
 
         start = time.time()
         # 线程池获取搜索结果
@@ -137,6 +135,8 @@ if __name__ == '__main__':
             else:
                 raise TypeError('%s不属于%s' % (parser, MangaParser))
         else:
-            print('没有查询到结果')
+            print('%s没有查询到结果' % (yellow_text % keywords))
+    except requests.exceptions.ReadTimeout:
+        print('连接失败，请重试')
     except Exception as e:
         print(e)

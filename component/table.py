@@ -3,7 +3,6 @@
 # @Time    : 2020/12/10 20:06
 # @Author  : DHY
 # @File    : table.py
-import os
 from pathlib import Path
 
 from prettytable import PrettyTable

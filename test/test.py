@@ -7,10 +7,11 @@ import asyncio
 
 import aiohttp
 
-from utlis.network import get_aiohttp_connector
+from utlis.config import check_test, read_test, write_score, read_score, get_proxy
+from utlis.network import get_aiohttp_connector, work_speed
 
 
-async def work_speed(url, proxy):
+async def speed(url, proxy):
     # v2ray 开启Mux多路复用
     # https://www.v2ray.com/chapter_02/mux.html
     try:
@@ -23,11 +24,12 @@ async def work_speed(url, proxy):
         return False
 
 
+# 测试代理并发性
 def test_proxy_concurrency(proxy):
     loop = asyncio.get_event_loop()
     tasks = []
     for n in range(0, 10):
-        tasks.append(asyncio.ensure_future(work_speed('https://api.ipify.org/', proxy)))
+        tasks.append(asyncio.ensure_future(speed('https://api.ipify.org/', proxy)))
     loop.run_until_complete(asyncio.wait(tasks))
     for task in tasks:
         if task.result() is False:
@@ -35,23 +37,25 @@ def test_proxy_concurrency(proxy):
     return True
 
 
-def enter_keywords():
-    while True:
-        keywords = input('请输入关键词> ') or '电锯人'
-        if keywords.find(':') != -1:
-            array = keywords.split(':')
-            keywords = array[0]
-            author = array[1]
-            if len(array) == 3:
-                site = array[2]
-                return keywords, author, site
+# 获取test.ini的测试结果
+def get_test():
+    if check_test() is False:
+        proxies = get_proxy()
+        result = {}
+        tests = read_test()
+        loop = asyncio.get_event_loop()
+        tasks = [asyncio.ensure_future(work_speed(test, proxies)) for test in tests]
+        loop.run_until_complete(asyncio.wait(tasks))
+        for task in tasks:
+            name, response_time = task.result()
+            if name in result:
+                result[name] = float(result[name]) + float(response_time)
             else:
-                return keywords, author, None
-        elif keywords == 'help' or keywords == 'h':
-            pass
-        else:
-            return keywords
-
-
-if __name__ == '__main__':
-    print(enter_keywords())
+                result[name] = response_time
+        for key, value in result.items():
+            result[key] = '%.2f' % float(value / 5)
+        write_score(result)
+        print(result)
+        return result
+    else:
+        return read_score()
