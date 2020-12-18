@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # @Time    : 2020/11/29 16:44
-# @Author  : DHY
+# @Author  : chobits
 # @File    : download.py
 import asyncio
 import os

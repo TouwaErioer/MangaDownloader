@@ -48,7 +48,6 @@ def get_manga(option):
 
 
 if __name__ == '__main__':
-    try:
         enter_command()
 
         # 生成config对象，检查配置文件
@@ -137,7 +136,7 @@ if __name__ == '__main__':
                 raise TypeError('%s不属于%s' % (parser, MangaParser))
         else:
             print('%s没有查询到结果' % (yellow_text % keywords))
-    except requests.exceptions.ReadTimeout:
-        print('连接失败，请重试')
-    except Exception as e:
-        print(e)
+# except requests.exceptions.ReadTimeout:
+#     print('连接失败，请重试')
+# except Exception as e:
+#     print(e)

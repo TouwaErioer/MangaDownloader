@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # @Time    : 2020/12/2 23:06
-# @Author  : DHY
+# @Author  : chobits
 # @File    : wuqimh.py
 import js2py
 import re
 
-from component.color import green_text
 from component.result import Result
 from component.task import Task
 from website.manga import MangaParser
@@ -21,8 +20,6 @@ class WuQiMh(MangaParser):
     def __init__(self, Config):
         self.config = Config.wuqimh
         super().__init__(self.config)
-        self.test = Config.test[self.name]
-        self.color = green_text
         self.image_site = self.config['image-site']
         self.headers = {
             'Host': self.host,
@@ -30,12 +27,12 @@ class WuQiMh(MangaParser):
             'User-Agent': UserAgent().random
         }
 
-    def search(self, keywords, enter_author,site, is_recursion=False, detail=True):
+    def search(self, keywords, enter_author, site, is_recursion=False, detail=True):
         if site is None or site == self.name:
             enter_author = enter_author if enter_author is not None else ''
             url = self.search_url % keywords
-            html = get_html(url, self.headers)
-            soup = BeautifulSoup(html.content, 'lxml')
+            response = get_html(url, self.headers)
+            soup = BeautifulSoup(response.content, 'lxml')
             page_count = len(soup.select('.pager-cont a'))
             books = soup.select('.book-detail')
             results = []
@@ -45,7 +42,8 @@ class WuQiMh(MangaParser):
                 href = self.site + a.get('href')
                 author = book.select('.tags')[2].select('a')[0].get_text()
                 if title.find(keywords) != -1 and author.find(enter_author) != -1:
-                    results.append(Result(title, href, author, self, self.color, self.name, None, None, None, None))
+                    results.append(Result(title, href, author, self, self.color, self.name, None, None, None,
+                                          response.elapsed.total_seconds()))
             # 页数大于1，线程池获取第二页以后的数据
             if page_count > 1 and is_recursion is not True:
                 executor = ThreadPoolExecutor(max_workers=5)
@@ -54,7 +52,7 @@ class WuQiMh(MangaParser):
                 wait(all_task, return_when=ALL_COMPLETED)
                 for task in all_task:
                     results.extend(task.result())
-            results = self.get_detail(results)
+            results = super().search(results)
             return results
 
     def get_soup(self, url):

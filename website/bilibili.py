@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # @Time    : 2020/12/4 14:07
-# @Author  : DHY
+# @Author  : chobits
 # @File    : bilibili.py
 import asyncio
 import time
@@ -11,7 +11,6 @@ import io
 import json
 import zipfile
 
-from component.color import pink_text
 from component.result import Result
 from component.task import Task
 from website.manga import MangaParser
@@ -25,7 +24,6 @@ class BiliBili(MangaParser):
         self.config = Config.bilibili
         super().__init__(self.config)
 
-        self.color = pink_text
         self.ComicDetail_API = self.config['comic-detail-api']
         self.Index_API = self.config['index-api']
         self.ImageToken = self.config['image-token-api']
@@ -48,8 +46,9 @@ class BiliBili(MangaParser):
                 href = str(res['id'])
                 author = res['author_name'][0].replace('<em class=\"keyword\">', '').replace('</em>', '')
                 if title.find(keywords) != -1 or author.find(enter_author) != -1:
-                    results.append(Result(title, href, author, self, self.color, self.name, False, 1, None, None))
-            results = self.get_detail(results)
+                    results.append(Result(title, href, author, self, self.color, self.name, False, 1, None,
+                                          response.elapsed.total_seconds()))
+            results = super().search(results)
             return results
 
     # 获取第一话图片的速度

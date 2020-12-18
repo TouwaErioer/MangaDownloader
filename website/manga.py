@@ -1,16 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # @Time    : 2020/12/3 12:35
-# @Author  : DHY
+# @Author  : chobits
 # @File    : manga.py
 import asyncio
 import time
 from abc import ABCMeta, abstractmethod
 from bs4 import BeautifulSoup
+
+from component.color import parse_color
 from component.enter import enter_branch, enter_range
 from concurrent.futures import (ALL_COMPLETED, ThreadPoolExecutor, wait)
 
-from utlis.config import get_proxy
+from utlis.config import get_proxy, read_config
 from utlis.download import download
 from utlis.network import get_detail
 
@@ -25,11 +27,16 @@ class MangaParser(metaclass=ABCMeta):
         self.url = None
         self.title = None
         self.semaphore = config['semaphore']
+        self.color = parse_color(config['color'])
+        self.detail = bool(int(read_config('parse', 'detail')))
 
     # 搜索
     @abstractmethod
-    def search(self, keywords):
-        pass
+    def search(self, results):
+        if self.detail:
+            return self.get_detail(results)
+        else:
+            return results
 
     # 获取soup
     @abstractmethod

@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # @Time    : 2020/12/11 15:00
-# @Author  : DHY
+# @Author  : chobits
 # @File    : mangabz.py
 import re
 
 from bs4 import BeautifulSoup
 
-from component.color import cyan_blue_text
 from component.result import Result
 from component.task import Task
 from config.config import config
@@ -16,14 +15,15 @@ from website.manga import MangaParser
 
 
 class MangaBZ(MangaParser):
+
     image_url = 'http://image.mangabz.com/1/%s/%s/%s.jpg?cid=%s&key=%s&type=1'
+
     # todo 随机
     user_agent = 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.66 Mobile Safari/537.36'
 
     def __init__(self, Config):
         self.config = Config.mangabz
         super().__init__(self.config)
-        self.color = cyan_blue_text
         self.headers = {
             'Host': self.host,
             'Referer': self.site,
@@ -44,8 +44,9 @@ class MangaBZ(MangaParser):
                 if convert(title, 'zh-cn').find(keywords) != -1:
                     result = Result(title, href, None, self, self.color, self.name, None, None, None, None)
                     results.append(result)
-            results = self.get_detail(results)
-            results = [result for result in results if result.author.find(enter_author) != -1]
+            results = super().search(results)
+            results = [result for result in results if
+                       result.author is None or result.author.find(enter_author) != -1]
             return results
 
     def get_soup(self, url):

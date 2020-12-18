@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # @Time    : 2020/12/13 11:17
-# @Author  : DHY
+# @Author  : chobits
 # @File    : enter.py
 import os
 import re

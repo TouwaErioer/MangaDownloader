@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # @Time    : 2020/12/12 22:35
-# @Author  : DHY
+# @Author  : chobits
 # @File    : result.py
 
 

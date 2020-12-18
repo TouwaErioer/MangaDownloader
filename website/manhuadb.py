@@ -1,14 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # @Time    : 2020/11/29 11:20
-# @Author  : DHY
+# @Author  : chobits
 # @File    : manhuadb.py
 import re
 from bs4 import BeautifulSoup
 import base64
 import json
 
-from component.color import yellow_text
 from component.result import Result
 from component.task import Task
 from config import config
@@ -21,8 +20,6 @@ class ManhuaDB(MangaParser):
     def __init__(self, Config):
         self.config = Config.manhuadb
         super().__init__(self.config)
-        self.test = Config.test[self.name]
-        self.color = yellow_text
         self.headers = {
             'Host': self.host,
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; rv:63.0) Gecko/20100101 Firefox/63.0',
@@ -42,8 +39,9 @@ class ManhuaDB(MangaParser):
                 author = comic.select('.comic-author a')[0].get('title')
                 href = self.site + item.get('href')
                 if title.find(keywords) != -1 and author.find(enter_author) != -1:
-                    results.append(Result(title, href, author, self, self.color, self.name, None, None, None, None))
-            results = self.get_detail(results)
+                    results.append(Result(title, href, author, self, self.color, self.name, None, None, None,
+                                          response.elapsed.total_seconds()))
+            results = super().search(results)
             return results
 
     def get_soup(self, url):

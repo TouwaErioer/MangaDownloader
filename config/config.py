@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # @Time    : 2020/12/5 23:59
-# @Author  : DHY
+# @Author  : chobits
 # @File    : config_parser.py
 import configparser
 import os

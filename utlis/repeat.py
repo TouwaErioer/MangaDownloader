@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # @Time    : 2020/12/13 11:03
-# @Author  : DHY
+# @Author  : chobits
 # @File    : repeat.py
 
 # 重试，直到没有失败任务
