@@ -58,7 +58,3 @@ def get_test():
         return result
     else:
         return read_score()
-
-
-if __name__ == '__main__':
-    get_site_name()
