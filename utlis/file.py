@@ -25,8 +25,3 @@ def get_file_total(source_dir):
         for file in files:
             file_total += 1
     return file_total
-
-
-async def async_write_file(config):
-    async with aiofiles.open('config.ini', mode='r') as f:
-        config.write(f)

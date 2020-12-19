@@ -48,7 +48,7 @@ class config:
                     # path不存在，创建文件夹
                     os.mkdir(section['path'])
             elif section_name == 'download':
-                if 'semaphore' in section and 'repeat' in section and 'tor' in section and 'remote' in section:
+                if 'tor' in section and 'remote' in section:
                     pass
                 else:
                     raise ValueError('%s参数错误' % section_name)

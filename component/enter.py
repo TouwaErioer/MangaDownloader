@@ -114,11 +114,12 @@ def enter_cookie(config):
         while True:
             cookie = input('请输入cookie> ')
             if cookie == '':
-                raise Exception('输入为空，请重新输入')
+                print(red_text % '输入为空，请重新输入')
             elif cookie == 'help' or cookie == 'h':
                 print_help('cookie')
-            write_config('bilibili', 'cookie', cookie)
-            break
+            else:
+                write_config('bilibili', 'cookie', cookie)
+                break
     return cookie
 
 

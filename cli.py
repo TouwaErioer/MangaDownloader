@@ -32,26 +32,23 @@ def work(parser):
         raise TypeError('%s不属于%s' % (parser, MangaParser))
 
 
-def get_manga(option):
-    if option == '漫画db':
-        return ManhuaDB(config)
-    elif option == '漫画堆':
-        return ManhuaDui(config)
-    elif option == '57漫画':
-        return WuQiMh(config)
-    elif option == 'bilibili漫画':
-        return BiliBili(config)
-    elif option == 'MangaBZ':
-        return MangaBZ(config)
-    else:
-        raise ValueError('找不到%s的类' % option)
+def get_parser(option):
+    for parser in parsers:
+        if parser.name == option:
+            return parser
+    raise ValueError('找不到%s的类' % option)
 
 
 if __name__ == '__main__':
+    try:
         enter_command()
 
         # 生成config对象，检查配置文件
         config = config()
+
+        # 初始化所有解析器
+        parsers = MangaParser.__subclasses__()
+        parsers = [parser(config) for parser in parsers]
 
         # 已选站点
         options = config.select_site()
@@ -62,7 +59,7 @@ if __name__ == '__main__':
         start = time.time()
         # 线程池获取搜索结果
         executor = ThreadPoolExecutor(max_workers=5)
-        all_task = [executor.submit(work, parser) for parser in [get_manga(option) for option in options]]
+        all_task = [executor.submit(work, parser) for parser in [get_parser(option) for option in options]]
         spinner = Spinner('Loading ')
         for task in all_task:
             while task.done() is False:
@@ -136,7 +133,7 @@ if __name__ == '__main__':
                 raise TypeError('%s不属于%s' % (parser, MangaParser))
         else:
             print('%s没有查询到结果' % (yellow_text % keywords))
-# except requests.exceptions.ReadTimeout:
-#     print('连接失败，请重试')
-# except Exception as e:
-#     print(e)
+    except requests.exceptions.ReadTimeout:
+        print('连接失败，请重试')
+    except Exception as e:
+        print(e)
