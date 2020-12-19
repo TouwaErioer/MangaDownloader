@@ -1,0 +1,14 @@
+aiohttp
+aiohttp-socks
+beautifulsoup4
+crypto
+fake-useragent
+Js2Py
+lxml
+prettytable
+progress
+pycrypto
+requests
+tqdm
+uvloop
+retrying

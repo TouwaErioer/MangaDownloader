@@ -9,7 +9,7 @@
 - 漫画db
 - 漫画堆（暂时无法访问）
 - 57漫画
-- bilibili漫画（仅可下载已付费）
+- bilibili漫画（仅可下载已付费，需输入cookie）
 - MangaBZ
 
 ## 功能
@@ -32,31 +32,31 @@
 
 ## 安装
 
-### 源代码启动
+### 源代码启动（方式一）
 
-环境：python3.8
+环境：Python 3.8
 
-依赖包：
-
-```
-aiohttp (3.7.3)
-aiohttp-socks (0.5.5)
-beautifulsoup4 (4.9.3)
-bs4 (0.0.1)
-crypto (1.4.1)
-fake-useragent (0.1.11)
-Js2Py (0.70)
-lxml (4.6.2)
-prettytable (2.0.0)
-progress (1.5)
-pycrypto (2.6.1)
-requests (2.25.0)
-tqdm (4.54.1)
-uvloop (0.14.0)
-retrying (1.3.3)
+```shell
+# 克隆项目
+git clone https://github.com/TouwaErioer/MangaDownloader.git
 ```
 
-### 二进制打包
+```shell
+# 切换工作目录
+cd MangaDownloader
+```
+
+```shell
+# 安装所需依赖
+pip install -r requirements.txt
+```
+
+```shell
+# 启动
+python cli.py
+```
+
+### 二进制打包（方式二）
 
 - Windows
 
@@ -64,7 +64,20 @@ retrying (1.3.3)
 
 - Linux
 
-  [点击下载](https://github.com/TouwaErioer/MangaDownloader/releases/download/0.1/mangadownload-linux.7z)
+  ```shell
+  # 下载二进制压缩包
+  wget https://github.com/TouwaErioer/MangaDownloader/releases/download/0.1/mangadownload-linux.7z
+  ```
+  
+  ```bash
+  # 解压
+  unzip mangadownload-linux.7z
+  ```
+  
+  ```shell
+  # 启动
+  ./cli
+  ```
 
 ## 使用
 ### 命令行
@@ -93,4 +106,56 @@ retrying (1.3.3)
 
 ```
 - cookie
+```
+
+## 配置
+
+```ini
+[folder]
+; 下载目录
+path = /mangadownloader/
+
+[download]
+; 开启tor
+tor = 0
+; 开启remote
+remote = 1
+
+[parse]
+; 开启详情解析
+detail = 0
+; 解析线程数
+work = 20
+
+; socks5代理配置
+[proxy]
+socks5_host = 127.0.0.1
+socks5_port = 1090
+
+; 站点配置
+[site]
+; 下载速度
+semaphore = 5000
+; 开启搜索
+search = 1
+```
+
+## 依赖包
+
+```
+aiohttp (3.7.3)
+aiohttp-socks (0.5.5)
+beautifulsoup4 (4.9.3)
+bs4 (0.0.1)
+crypto (1.4.1)
+fake-useragent (0.1.11)
+Js2Py (0.70)
+lxml (4.6.2)
+prettytable (2.0.0)
+progress (1.5)
+pycrypto (2.6.1)
+requests (2.25.0)
+tqdm (4.54.1)
+uvloop (0.14.0)
+retrying (1.3.3)
 ```
