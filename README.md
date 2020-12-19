@@ -129,8 +129,8 @@ work = 20
 
 ; socks5代理配置
 [proxy]
-socks5_host = 127.0.0.1
-socks5_port = 1090
+socks5_host =
+socks5_port =
 
 ; 站点配置
 [site]
