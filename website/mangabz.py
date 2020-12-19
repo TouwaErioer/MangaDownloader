@@ -27,6 +27,7 @@ class MangaBZ(MangaParser):
         self.headers = {
             'Host': self.host,
             'Referer': self.site,
+            'cookie': 'mangabz_lang=2'  # 网页转简体
         }
 
     def search(self, keywords, enter_author, site):
@@ -40,9 +41,10 @@ class MangaBZ(MangaParser):
                 a = manga.select('a')[0]
                 title = a.get('title')
                 href = self.site + a.get('href')
-                # 精确搜索，繁体转简体
-                if convert(title, 'zh-cn').find(keywords) != -1:
-                    result = Result(title, href, None, self, self.color, self.name, None, None, None, None)
+                # 精确搜索
+                if title.find(keywords) != -1:
+                    result = Result(title, href, None, self, self.color, self.name, None, None, None,
+                                    response.elapsed.total_seconds())
                     results.append(result)
             results = super().search(results)
             results = [result for result in results if
