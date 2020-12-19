@@ -77,6 +77,11 @@ python cli.py
   ```
   
   ```shell
+  # 进入文件夹
+  cd mangadownload-linux
+  ```
+  
+  ```shell
   # 启动 
   # 如果提示Permission denied 请执行 chmod 777 cli
   ./cli
