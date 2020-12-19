@@ -62,20 +62,23 @@ python cli.py
 
   [点击下载](https://github.com/TouwaErioer/MangaDownloader/releases/download/0.1/mangadownload-win.7z)
 
+  为了更好的体验，请使用[Windows Terminal](https://github.com/microsoft/terminal)运行cli.exe
+  
 - Linux
 
   ```shell
   # 下载二进制压缩包
-  wget https://github.com/TouwaErioer/MangaDownloader/releases/download/0.1/mangadownload-linux.7z
+  wget https://github.com/TouwaErioer/MangaDownloader/releases/download/0.1/mangadownload-linux.zip
   ```
   
   ```bash
   # 解压
-  unzip mangadownload-linux.7z
+  unzip mangadownload-linux.zip
   ```
   
   ```shell
-  # 启动
+  # 启动 
+  # 如果提示Permission denied 请执行 chmod 777 cli
   ./cli
   ```
 
