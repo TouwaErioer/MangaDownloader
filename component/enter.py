@@ -108,11 +108,11 @@ def enter_keywords(config):
             return keywords, None, None
 
 
-def enter_cookie(config):
+def enter_cookie(config, name):
     cookie = config['cookie']
     if cookie == '':
         while True:
-            cookie = input('请输入cookie> ')
+            cookie = input('请输入%scookie> ' % name)
             if cookie == '':
                 print(red_text % '输入为空，请重新输入')
             elif cookie == 'help' or cookie == 'h':

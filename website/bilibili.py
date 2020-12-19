@@ -27,7 +27,7 @@ class BiliBili(MangaParser):
         self.ComicDetail_API = self.config['comic-detail-api']
         self.Index_API = self.config['index-api']
         self.ImageToken = self.config['image-token-api']
-        self.cookie = enter_cookie(self.config)
+        self.cookie = enter_cookie(self.config, self.color % self.name)
         self.headers = {
             'origin': self.host,
             'User-Agent': UserAgent().random
